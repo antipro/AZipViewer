@@ -123,9 +123,18 @@ public class ImageViewerActivity extends AppCompatActivity {
 
     private PhotoView getCurrentPhotoView() {
         try {
-            View currentView = viewPager.getChildAt(0);
-            if (currentView != null) {
-                return currentView.findViewById(R.id.photoView);
+            // Get the RecyclerView that ViewPager2 uses internally
+            if (viewPager.getChildCount() > 0) {
+                View recyclerView = viewPager.getChildAt(0);
+                if (recyclerView instanceof androidx.recyclerview.widget.RecyclerView) {
+                    androidx.recyclerview.widget.RecyclerView rv = (androidx.recyclerview.widget.RecyclerView) recyclerView;
+                    // Find the view holder for the current position
+                    androidx.recyclerview.widget.RecyclerView.ViewHolder holder = 
+                        rv.findViewHolderForAdapterPosition(currentPosition);
+                    if (holder != null && holder.itemView != null) {
+                        return holder.itemView.findViewById(R.id.photoView);
+                    }
+                }
             }
         } catch (Exception e) {
             // Ignore

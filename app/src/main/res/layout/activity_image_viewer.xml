@@ -48,8 +48,7 @@
             android:id="@+id/btnRotateLeft"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:src="@android:drawable/ic_menu_rotate"
-            android:rotation="180"
+            android:src="@android:drawable/ic_menu_revert"
             android:background="?attr/selectableItemBackgroundBorderless"
             app:tint="@android:color/white"
             android:contentDescription="Rotate Left" />
@@ -76,7 +75,7 @@
             android:id="@+id/btnZoomOut"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:src="@android:drawable/ic_menu_view"
+            android:src="@android:drawable/ic_delete"
             android:background="?attr/selectableItemBackgroundBorderless"
             app:tint="@android:color/white"
             android:contentDescription="Zoom Out" />
