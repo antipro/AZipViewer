@@ -12,7 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- Top bar with back button and image counter -->
+    <!-- Top bar with back button, counter, and controls -->
     <LinearLayout
         android:id="@+id/topBar"
         android:layout_width="match_parent"
@@ -26,7 +26,7 @@
             android:id="@+id/btnBack"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:src="@android:drawable/ic_menu_revert"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
             android:background="?attr/selectableItemBackgroundBorderless"
             app:tint="@android:color/white"
             android:contentDescription="Back" />
@@ -37,6 +37,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
             android:text="1 / 10"
             android:textColor="@android:color/white"
             android:textSize="16sp"
@@ -44,13 +45,54 @@
             android:gravity="center" />
 
         <ImageButton
-            android:id="@+id/btnRotate"
+            android:id="@+id/btnRotateLeft"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@android:drawable/ic_menu_rotate"
+            android:rotation="180"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:tint="@android:color/white"
+            android:contentDescription="Rotate Left" />
+
+        <ImageButton
+            android:id="@+id/btnRotateRight"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:src="@android:drawable/ic_menu_rotate"
             android:background="?attr/selectableItemBackgroundBorderless"
             app:tint="@android:color/white"
-            android:contentDescription="Rotate" />
+            android:contentDescription="Rotate Right" />
+
+        <ImageButton
+            android:id="@+id/btnZoomIn"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@android:drawable/ic_menu_add"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:tint="@android:color/white"
+            android:contentDescription="Zoom In" />
+
+        <ImageButton
+            android:id="@+id/btnZoomOut"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@android:drawable/ic_menu_view"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:tint="@android:color/white"
+            android:contentDescription="Zoom Out" />
     </LinearLayout>
+
+    <!-- Bottom hint text -->
+    <TextView
+        android:id="@+id/tvSwipeHint"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="24dp"
+        android:text="SWIPE OR USE BUTTONS TO NAVIGATE"
+        android:textColor="@android:color/darker_gray"
+        android:textSize="12sp"
+        android:alpha="0.7"
+        android:letterSpacing="0.1" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

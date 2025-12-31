@@ -167,30 +167,38 @@ public class GalleryActivity extends AppCompatActivity {
      * Prompt user to enter password for encrypted archive
      */
     private void promptForPassword() {
-        EditText passwordInput = new EditText(this);
-        passwordInput.setHint("Enter password");
-        passwordInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-
-        new AlertDialog.Builder(this)
-                .setTitle("Password Required")
-                .setMessage("This archive is encrypted. Please enter the password:")
-                .setView(passwordInput)
-                .setPositiveButton("OK", (dialog, which) -> {
-                    String newPassword = passwordInput.getText().toString();
-                    if (!newPassword.isEmpty()) {
-                        password = newPassword;
-                        passwordManager.savePassword(archiveFileName, newPassword);
-                        Toast.makeText(this, "Password saved", Toast.LENGTH_SHORT).show();
-                        loadImagesFromArchive(); // Retry loading
-                    } else {
-                        Toast.makeText(this, "Password cannot be empty", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .setNegativeButton("Cancel", (dialog, which) -> {
-                    finish(); // Close gallery if user cancels
-                })
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_password, null);
+        EditText passwordInput = dialogView.findViewById(R.id.passwordInput);
+        
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
                 .setCancelable(false)
-                .show();
+                .create();
+        
+        // Make dialog background transparent to show custom background
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+        
+        dialogView.findViewById(R.id.btnCancel).setOnClickListener(v -> {
+            dialog.dismiss();
+            finish(); // Close gallery if user cancels
+        });
+        
+        dialogView.findViewById(R.id.btnUnlock).setOnClickListener(v -> {
+            String newPassword = passwordInput.getText().toString();
+            if (!newPassword.isEmpty()) {
+                password = newPassword;
+                passwordManager.savePassword(archiveFileName, newPassword);
+                Toast.makeText(this, "Password saved", Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+                loadImagesFromArchive(); // Retry loading
+            } else {
+                Toast.makeText(this, "Password cannot be empty", Toast.LENGTH_SHORT).show();
+            }
+        });
+        
+        dialog.show();
     }
 
     private void onImageClick(int position) {

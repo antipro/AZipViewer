@@ -9,6 +9,8 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
 
+import com.github.chrisbanes.photoview.PhotoView;
+
 import java.util.List;
 
 /**
@@ -22,8 +24,8 @@ public class ImageViewerActivity extends AppCompatActivity {
     private static List<Bitmap> sharedImages;
 
     private ViewPager2 viewPager;
-    private ImageButton btnBack, btnRotate;
-    private TextView tvImageCounter;
+    private ImageButton btnBack, btnRotateLeft, btnRotateRight, btnZoomIn, btnZoomOut;
+    private TextView tvImageCounter, tvSwipeHint;
     private ImageViewerAdapter adapter;
     private int currentPosition;
 
@@ -45,8 +47,12 @@ public class ImageViewerActivity extends AppCompatActivity {
 
         viewPager = findViewById(R.id.viewPager);
         btnBack = findViewById(R.id.btnBack);
-        btnRotate = findViewById(R.id.btnRotate);
+        btnRotateLeft = findViewById(R.id.btnRotateLeft);
+        btnRotateRight = findViewById(R.id.btnRotateRight);
+        btnZoomIn = findViewById(R.id.btnZoomIn);
+        btnZoomOut = findViewById(R.id.btnZoomOut);
         tvImageCounter = findViewById(R.id.tvImageCounter);
+        tvSwipeHint = findViewById(R.id.tvSwipeHint);
 
         // Get position from intent
         currentPosition = getIntent().getIntExtra(EXTRA_POSITION, 0);
@@ -77,17 +83,54 @@ public class ImageViewerActivity extends AppCompatActivity {
         // Back button
         btnBack.setOnClickListener(v -> finish());
 
-        // Rotate button - rotates current image by 90 degrees
-        btnRotate.setOnClickListener(v -> {
+        // Rotate left button - rotates current image by -90 degrees
+        btnRotateLeft.setOnClickListener(v -> {
+            float currentRotation = adapter.getRotation(currentPosition);
+            float newRotation = (currentRotation - 90f) % 360f;
+            adapter.saveRotation(currentPosition, newRotation);
+            adapter.notifyItemChanged(currentPosition);
+        });
+
+        // Rotate right button - rotates current image by 90 degrees
+        btnRotateRight.setOnClickListener(v -> {
             float currentRotation = adapter.getRotation(currentPosition);
             float newRotation = (currentRotation + 90f) % 360f;
             adapter.saveRotation(currentPosition, newRotation);
-            // Notify adapter to rebind current item
             adapter.notifyItemChanged(currentPosition);
+        });
+
+        // Zoom in button
+        btnZoomIn.setOnClickListener(v -> {
+            PhotoView photoView = getCurrentPhotoView();
+            if (photoView != null) {
+                float currentScale = photoView.getScale();
+                photoView.setScale(currentScale * 1.5f, true);
+            }
+        });
+
+        // Zoom out button
+        btnZoomOut.setOnClickListener(v -> {
+            PhotoView photoView = getCurrentPhotoView();
+            if (photoView != null) {
+                float currentScale = photoView.getScale();
+                photoView.setScale(currentScale / 1.5f, true);
+            }
         });
 
         // Toggle UI on tap
         findViewById(R.id.topBar).setOnClickListener(v -> toggleUI());
+    }
+
+    private PhotoView getCurrentPhotoView() {
+        try {
+            View currentView = viewPager.getChildAt(0);
+            if (currentView != null) {
+                return currentView.findViewById(R.id.photoView);
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+        return null;
     }
 
     private void updateImageCounter(int position) {
@@ -98,8 +141,10 @@ public class ImageViewerActivity extends AppCompatActivity {
         View topBar = findViewById(R.id.topBar);
         if (topBar.getVisibility() == View.VISIBLE) {
             topBar.setVisibility(View.GONE);
+            tvSwipeHint.setVisibility(View.GONE);
         } else {
             topBar.setVisibility(View.VISIBLE);
+            tvSwipeHint.setVisibility(View.VISIBLE);
         }
     }
 
