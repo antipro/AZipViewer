@@ -3,16 +3,21 @@ package com.bitifyware.zipviewer;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.text.InputType;
+import android.view.View;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import net.lingala.zip4j.ZipFile;
+import net.lingala.zip4j.exception.ZipException;
 import net.lingala.zip4j.model.FileHeader;
 
 import java.io.File;
@@ -37,7 +42,9 @@ public class GalleryActivity extends AppCompatActivity {
 
     private String archivePath;
     private String password;
+    private String archiveFileName;
     private List<Bitmap> images;
+    private PasswordManager passwordManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,8 +52,10 @@ public class GalleryActivity extends AppCompatActivity {
         setContentView(R.layout.activity_gallery);
 
         archivePath = getIntent().getStringExtra(EXTRA_ARCHIVE_PATH);
-        String name = getIntent().getStringExtra(EXTRA_ARCHIVE_NAME);
+        archiveFileName = getIntent().getStringExtra(EXTRA_ARCHIVE_NAME);
         password = getIntent().getStringExtra(EXTRA_PASSWORD);
+
+        passwordManager = new PasswordManager(this);
 
         imageRecyclerView = findViewById(R.id.imageRecyclerView);
         btnBack = findViewById(R.id.btnBack);
@@ -54,10 +63,10 @@ public class GalleryActivity extends AppCompatActivity {
         btnListView = findViewById(R.id.btnListView);
         archiveName = findViewById(R.id.archiveName);
 
-        archiveName.setText(name);
+        archiveName.setText(archiveFileName);
 
         images = new ArrayList<>();
-        imageAdapter = new ImageAdapter(images);
+        imageAdapter = new ImageAdapter(images, this::onImageClick);
         imageRecyclerView.setAdapter(imageAdapter);
         updateLayoutManager();
 
@@ -134,11 +143,83 @@ public class GalleryActivity extends AppCompatActivity {
                     }
                 });
 
+            } catch (ZipException e) {
+                // Check if it's a password-related error
+                runOnUiThread(() -> {
+                    if (e.getMessage() != null && 
+                        (e.getMessage().contains("password") || 
+                         e.getMessage().contains("Wrong password") ||
+                         e.getMessage().contains("encrypted"))) {
+                        // Prompt for password
+                        promptForPassword();
+                    } else {
+                        Toast.makeText(this, "Error loading images: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                });
             } catch (Exception e) {
                 runOnUiThread(() -> {
                     Toast.makeText(this, "Error loading images: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
             }
         }).start();
+    }
+
+    /**
+     * Prompt user to enter password for encrypted archive
+     */
+    private void promptForPassword() {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_password, null);
+        EditText passwordInput = dialogView.findViewById(R.id.passwordInput);
+        
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setCancelable(false)
+                .create();
+        
+        // Make dialog background transparent to show custom background
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+        
+        dialogView.findViewById(R.id.btnCancel).setOnClickListener(v -> {
+            dialog.dismiss();
+            finish(); // Close gallery if user cancels
+        });
+        
+        dialogView.findViewById(R.id.btnUnlock).setOnClickListener(v -> {
+            String newPassword = passwordInput.getText().toString();
+            if (!newPassword.isEmpty()) {
+                password = newPassword;
+                passwordManager.savePassword(archiveFileName, newPassword);
+                Toast.makeText(this, "Password saved", Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+                loadImagesFromArchive(); // Retry loading
+            } else {
+                Toast.makeText(this, "Password cannot be empty", Toast.LENGTH_SHORT).show();
+            }
+        });
+        
+        dialog.show();
+    }
+
+    private void onImageClick(int position) {
+        ImageViewerActivity.setSharedImages(images);
+        android.content.Intent intent = new android.content.Intent(this, ImageViewerActivity.class);
+        intent.putExtra(ImageViewerActivity.EXTRA_POSITION, position);
+        startActivity(intent);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Clean up bitmaps when activity is destroyed
+        if (images != null) {
+            for (Bitmap bitmap : images) {
+                if (bitmap != null && !bitmap.isRecycled()) {
+                    bitmap.recycle();
+                }
+            }
+            images.clear();
+        }
     }
 }

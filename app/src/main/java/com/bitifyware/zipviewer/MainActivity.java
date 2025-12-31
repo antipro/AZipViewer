@@ -180,30 +180,40 @@ public class MainActivity extends AppCompatActivity implements ArchiveAdapter.On
      * Prompt user to enter password for encrypted archive
      */
     private void promptForPassword(String fileName, Runnable onSuccess) {
-        View dialogView = LayoutInflater.from(this).inflate(android.R.layout.simple_list_item_1, null);
-        EditText passwordInput = new EditText(this);
-        passwordInput.setHint("Enter password");
-        passwordInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
-
-        new AlertDialog.Builder(this)
-                .setTitle("Password Required")
-                .setMessage("This archive is encrypted. Please enter the password:")
-                .setView(passwordInput)
-                .setPositiveButton("Save", (dialog, which) -> {
-                    String password = passwordInput.getText().toString();
-                    if (!password.isEmpty()) {
-                        passwordManager.savePassword(fileName, password);
-                        Toast.makeText(this, "Password saved", Toast.LENGTH_SHORT).show();
-                        loadArchives();
-                        if (onSuccess != null) {
-                            onSuccess.run();
-                        }
-                    }
-                })
-                .setNegativeButton("Skip", (dialog, which) -> {
-                    loadArchives();
-                })
-                .show();
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_password, null);
+        EditText passwordInput = dialogView.findViewById(R.id.passwordInput);
+        
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setCancelable(false)
+                .create();
+        
+        // Make dialog background transparent to show custom background
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+        
+        dialogView.findViewById(R.id.btnCancel).setOnClickListener(v -> {
+            dialog.dismiss();
+            loadArchives();
+        });
+        
+        dialogView.findViewById(R.id.btnUnlock).setOnClickListener(v -> {
+            String password = passwordInput.getText().toString();
+            if (!password.isEmpty()) {
+                passwordManager.savePassword(fileName, password);
+                Toast.makeText(this, "Password saved", Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+                loadArchives();
+                if (onSuccess != null) {
+                    onSuccess.run();
+                }
+            } else {
+                Toast.makeText(this, "Password cannot be empty", Toast.LENGTH_SHORT).show();
+            }
+        });
+        
+        dialog.show();
     }
 
     /**
