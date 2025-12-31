@@ -25,7 +25,7 @@
                 android:layout_height="40dp"
                 android:src="@android:drawable/ic_menu_revert"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:tint="@color/dark_text_primary"
+                app:tint="@color/dark_text_primary"
                 android:contentDescription="Back" />
 
             <TextView
@@ -48,7 +48,7 @@
                 android:layout_height="40dp"
                 android:src="@android:drawable/ic_menu_sort_by_size"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:tint="@color/accent_purple"
+                app:tint="@color/accent_purple"
                 android:contentDescription="@string/grid_view" />
 
             <ImageButton
@@ -57,7 +57,7 @@
                 android:layout_height="40dp"
                 android:src="@android:drawable/ic_menu_agenda"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:tint="@color/dark_text_secondary"
+                app:tint="@color/dark_text_secondary"
                 android:contentDescription="@string/list_view" />
         </LinearLayout>
 

@@ -22,7 +22,7 @@
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:src="@android:drawable/ic_menu_save"
-            android:tint="@color/accent_blue"
+            app:tint="@color/accent_blue"
             android:contentDescription="@string/zip_label" />
 
         <!-- File Info -->
@@ -58,7 +58,7 @@
                     android:layout_width="12dp"
                     android:layout_height="12dp"
                     android:src="@android:drawable/ic_lock_lock"
-                    android:tint="@color/accent_purple"
+                    app:tint="@color/accent_purple"
                     android:contentDescription="Password" />
 
                 <TextView
@@ -111,7 +111,7 @@
                     android:layout_width="14dp"
                     android:layout_height="14dp"
                     android:src="@android:drawable/ic_menu_recent_history"
-                    android:tint="@color/dark_text_secondary"
+                    app:tint="@color/dark_text_secondary"
                     android:contentDescription="Date" />
 
                 <TextView
@@ -128,7 +128,7 @@
                     android:layout_width="14dp"
                     android:layout_height="14dp"
                     android:src="@android:drawable/ic_menu_view"
-                    android:tint="@color/accent_blue"
+                    app:tint="@color/accent_blue"
                     android:contentDescription="@string/view" />
 
                 <TextView
@@ -149,7 +149,7 @@
             android:layout_height="40dp"
             android:src="@android:drawable/ic_menu_delete"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:tint="@color/dark_text_secondary"
+            app:tint="@color/dark_text_secondary"
             android:contentDescription="@string/delete" />
     </LinearLayout>
 

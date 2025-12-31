@@ -82,7 +82,7 @@
                 android:paddingEnd="16dp"
                 android:drawableStart="@android:drawable/ic_menu_search"
                 android:drawablePadding="12dp"
-                android:drawableTint="@color/dark_text_secondary"
+                app:drawableTint="@color/dark_text_secondary"
                 android:inputType="text"
                 android:imeOptions="actionSearch" />
         </com.google.android.material.card.MaterialCardView>
@@ -109,7 +109,7 @@
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:src="@android:drawable/ic_secure"
-                android:tint="@color/accent_purple"
+                app:tint="@color/accent_purple"
                 android:contentDescription="@string/privacy_message" />
 
             <TextView
