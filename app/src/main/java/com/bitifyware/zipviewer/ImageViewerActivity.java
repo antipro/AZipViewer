@@ -7,12 +7,8 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
-import com.github.chrisbanes.photoview.PhotoView;
-
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -30,7 +26,6 @@ public class ImageViewerActivity extends AppCompatActivity {
     private TextView tvImageCounter;
     private ImageViewerAdapter adapter;
     private int currentPosition;
-    private float currentRotation = 0f;
 
     public static void setSharedImages(List<Bitmap> images) {
         sharedImages = images;
@@ -75,7 +70,6 @@ public class ImageViewerActivity extends AppCompatActivity {
             public void onPageSelected(int position) {
                 super.onPageSelected(position);
                 currentPosition = position;
-                currentRotation = 0f; // Reset rotation on page change
                 updateImageCounter(position);
             }
         });
@@ -83,8 +77,14 @@ public class ImageViewerActivity extends AppCompatActivity {
         // Back button
         btnBack.setOnClickListener(v -> finish());
 
-        // Rotate button
-        btnRotate.setOnClickListener(v -> rotateCurrentImage());
+        // Rotate button - rotates current image by 90 degrees
+        btnRotate.setOnClickListener(v -> {
+            float currentRotation = adapter.getRotation(currentPosition);
+            float newRotation = (currentRotation + 90f) % 360f;
+            adapter.saveRotation(currentPosition, newRotation);
+            // Notify adapter to rebind current item
+            adapter.notifyItemChanged(currentPosition);
+        });
 
         // Toggle UI on tap
         findViewById(R.id.topBar).setOnClickListener(v -> toggleUI());
@@ -92,20 +92,6 @@ public class ImageViewerActivity extends AppCompatActivity {
 
     private void updateImageCounter(int position) {
         tvImageCounter.setText((position + 1) + " / " + sharedImages.size());
-    }
-
-    private void rotateCurrentImage() {
-        // Rotate by 90 degrees
-        currentRotation = (currentRotation + 90f) % 360f;
-        
-        // Get the current PhotoView and rotate it
-        RecyclerView.ViewHolder holder = ((RecyclerView) viewPager.getChildAt(0))
-                .findViewHolderForAdapterPosition(currentPosition);
-        
-        if (holder instanceof ImageViewerAdapter.ImageViewerViewHolder) {
-            PhotoView photoView = ((ImageViewerAdapter.ImageViewerViewHolder) holder).photoView;
-            photoView.setRotation(currentRotation);
-        }
     }
 
     private void toggleUI() {

@@ -10,7 +10,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.github.chrisbanes.photoview.PhotoView;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Adapter for ViewPager2 to display full-screen zoomable images
@@ -18,18 +20,10 @@ import java.util.List;
 public class ImageViewerAdapter extends RecyclerView.Adapter<ImageViewerAdapter.ImageViewerViewHolder> {
 
     private List<Bitmap> images;
-    private OnRotateListener rotateListener;
-
-    public interface OnRotateListener {
-        void onRotate(int position, float rotation);
-    }
+    private Map<Integer, Float> rotationMap = new HashMap<>();
 
     public ImageViewerAdapter(List<Bitmap> images) {
         this.images = images;
-    }
-
-    public void setOnRotateListener(OnRotateListener listener) {
-        this.rotateListener = listener;
     }
 
     @NonNull
@@ -44,12 +38,30 @@ public class ImageViewerAdapter extends RecyclerView.Adapter<ImageViewerAdapter.
     public void onBindViewHolder(@NonNull ImageViewerViewHolder holder, int position) {
         Bitmap bitmap = images.get(position);
         holder.photoView.setImageBitmap(bitmap);
-        holder.photoView.setRotation(0); // Reset rotation for each bind
+        
+        // Restore saved rotation for this position
+        Float savedRotation = rotationMap.get(position);
+        holder.photoView.setRotation(savedRotation != null ? savedRotation : 0f);
     }
 
     @Override
     public int getItemCount() {
         return images.size();
+    }
+
+    /**
+     * Save rotation state for a specific position
+     */
+    public void saveRotation(int position, float rotation) {
+        rotationMap.put(position, rotation);
+    }
+
+    /**
+     * Get rotation state for a specific position
+     */
+    public float getRotation(int position) {
+        Float rotation = rotationMap.get(position);
+        return rotation != null ? rotation : 0f;
     }
 
     static class ImageViewerViewHolder extends RecyclerView.ViewHolder {
@@ -59,10 +71,5 @@ public class ImageViewerAdapter extends RecyclerView.Adapter<ImageViewerAdapter.
             super(itemView);
             photoView = itemView.findViewById(R.id.photoView);
         }
-    }
-
-    public PhotoView getPhotoViewAt(int position) {
-        // This is a helper method that will be used to get the current PhotoView
-        return null; // We'll handle rotation differently
     }
 }
