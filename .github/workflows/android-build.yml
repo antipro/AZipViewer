@@ -80,7 +80,7 @@ jobs:
       # Configure your app/build.gradle to read signing config from environment variables or gradle properties
       
       - name: Decode keystore (if secrets are present)
-        if: secrets.KEYSTORE_BASE64 != ''
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > ${{ github.workspace }}/release.keystore
           echo "KEYSTORE_FILE=${{ github.workspace }}/release.keystore" >> $GITHUB_ENV
@@ -89,7 +89,7 @@ jobs:
           echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
       
       - name: Build Release APK (signed)
-        if: secrets.KEYSTORE_BASE64 != ''
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
         run: ./gradlew assembleRelease
       
       # Uncomment below to build release APK without signing (not recommended for production)
