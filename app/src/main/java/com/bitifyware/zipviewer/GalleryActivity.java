@@ -3,16 +3,21 @@ package com.bitifyware.zipviewer;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+import android.text.InputType;
+import android.view.LayoutInflater;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import net.lingala.zip4j.ZipFile;
+import net.lingala.zip4j.exception.ZipException;
 import net.lingala.zip4j.model.FileHeader;
 
 import java.io.File;
@@ -37,7 +42,9 @@ public class GalleryActivity extends AppCompatActivity {
 
     private String archivePath;
     private String password;
+    private String archiveFileName;
     private List<Bitmap> images;
+    private PasswordManager passwordManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,8 +52,10 @@ public class GalleryActivity extends AppCompatActivity {
         setContentView(R.layout.activity_gallery);
 
         archivePath = getIntent().getStringExtra(EXTRA_ARCHIVE_PATH);
-        String name = getIntent().getStringExtra(EXTRA_ARCHIVE_NAME);
+        archiveFileName = getIntent().getStringExtra(EXTRA_ARCHIVE_NAME);
         password = getIntent().getStringExtra(EXTRA_PASSWORD);
+
+        passwordManager = new PasswordManager(this);
 
         imageRecyclerView = findViewById(R.id.imageRecyclerView);
         btnBack = findViewById(R.id.btnBack);
@@ -54,7 +63,7 @@ public class GalleryActivity extends AppCompatActivity {
         btnListView = findViewById(R.id.btnListView);
         archiveName = findViewById(R.id.archiveName);
 
-        archiveName.setText(name);
+        archiveName.setText(archiveFileName);
 
         images = new ArrayList<>();
         imageAdapter = new ImageAdapter(images, this::onImageClick);
@@ -134,12 +143,55 @@ public class GalleryActivity extends AppCompatActivity {
                     }
                 });
 
+            } catch (ZipException e) {
+                // Check if it's a password-related error
+                runOnUiThread(() -> {
+                    if (e.getMessage() != null && 
+                        (e.getMessage().contains("password") || 
+                         e.getMessage().contains("Wrong password") ||
+                         e.getMessage().contains("encrypted"))) {
+                        // Prompt for password
+                        promptForPassword();
+                    } else {
+                        Toast.makeText(this, "Error loading images: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                });
             } catch (Exception e) {
                 runOnUiThread(() -> {
                     Toast.makeText(this, "Error loading images: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
             }
         }).start();
+    }
+
+    /**
+     * Prompt user to enter password for encrypted archive
+     */
+    private void promptForPassword() {
+        EditText passwordInput = new EditText(this);
+        passwordInput.setHint("Enter password");
+        passwordInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Password Required")
+                .setMessage("This archive is encrypted. Please enter the password:")
+                .setView(passwordInput)
+                .setPositiveButton("OK", (dialog, which) -> {
+                    String newPassword = passwordInput.getText().toString();
+                    if (!newPassword.isEmpty()) {
+                        password = newPassword;
+                        passwordManager.savePassword(archiveFileName, newPassword);
+                        Toast.makeText(this, "Password saved", Toast.LENGTH_SHORT).show();
+                        loadImagesFromArchive(); // Retry loading
+                    } else {
+                        Toast.makeText(this, "Password cannot be empty", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("Cancel", (dialog, which) -> {
+                    finish(); // Close gallery if user cancels
+                })
+                .setCancelable(false)
+                .show();
     }
 
     private void onImageClick(int position) {

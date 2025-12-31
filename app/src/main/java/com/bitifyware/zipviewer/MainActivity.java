@@ -162,7 +162,6 @@ public class MainActivity extends AppCompatActivity implements ArchiveAdapter.On
      * Prompt user to enter password for encrypted archive
      */
     private void promptForPassword(String fileName, Runnable onSuccess) {
-        View dialogView = LayoutInflater.from(this).inflate(android.R.layout.simple_list_item_1, null);
         EditText passwordInput = new EditText(this);
         passwordInput.setHint("Enter password");
         passwordInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
