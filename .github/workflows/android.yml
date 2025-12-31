@@ -24,3 +24,22 @@ jobs:
       run: chmod +x gradlew
     - name: Build with Gradle
       run: ./gradlew build
+    - name: Build Debug APK
+      run: ./gradlew assembleDebug
+
+
+    - name: Upload APK artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-apks
+        path: |
+          **/build/outputs/apk/**/*.apk
+        if-no-files-found: warn
+      
+    - name: Upload AAB artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-bundles
+        path: |
+          **/build/outputs/bundle/**/*.aab
+        if-no-files-found: ignore
