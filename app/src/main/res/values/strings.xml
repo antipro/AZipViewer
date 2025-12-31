@@ -1,7 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">ZipViewer</string>
+    <string name="private_gallery">PRIVATE GALLERY</string>
     <string name="toggle_view">Toggle View</string>
     <string name="grid_view">Grid View</string>
     <string name="list_view">List View</string>
+    <string name="search_archives">Search archives…</string>
+    <string name="add_archive">Add Archive</string>
+    <string name="privacy_message">END-TO-END LOCAL PRIVACY</string>
+    <string name="privacy_subtitle">All ZIP archives stay in your browser\'s internal storage. We never upload your data.</string>
+    <string name="delete">Delete</string>
+    <string name="view">View</string>
+    <string name="zip_label">ZIP</string>
 </resources>

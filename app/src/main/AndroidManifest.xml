@@ -32,6 +32,11 @@
                 <data android:mimeType="application/x-7z-compressed" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".GalleryActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity" />
     </application>
 
 </manifest>

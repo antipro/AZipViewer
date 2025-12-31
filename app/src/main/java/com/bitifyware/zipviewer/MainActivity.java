@@ -3,10 +3,13 @@ package com.bitifyware.zipviewer;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -15,6 +18,8 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Main activity for ZipViewer - Private Archive Viewer
@@ -24,11 +29,14 @@ import java.io.InputStream;
  * - Grid and List views
  * - Zip Editor: Can be called by other apps to open ZIP files
  */
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ArchiveAdapter.OnArchiveClickListener {
 
     private RecyclerView recyclerView;
-    private FloatingActionButton fabViewToggle;
-    private boolean isGridView = true;
+    private FloatingActionButton fabAdd;
+    private EditText searchBar;
+    private ArchiveAdapter archiveAdapter;
+    private List<ArchiveItem> archives;
+    private List<ArchiveItem> filteredArchives;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,17 +44,36 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         recyclerView = findViewById(R.id.recyclerView);
-        fabViewToggle = findViewById(R.id.fabViewToggle);
+        fabAdd = findViewById(R.id.fabAdd);
+        searchBar = findViewById(R.id.searchBar);
 
-        // Set initial layout as grid view
-        updateLayoutManager();
+        archives = new ArrayList<>();
+        filteredArchives = new ArrayList<>();
 
-        // Toggle between grid and list view
-        fabViewToggle.setOnClickListener(v -> {
-            isGridView = !isGridView;
-            updateLayoutManager();
-            Toast.makeText(this, isGridView ? "Grid View" : "List View", Toast.LENGTH_SHORT).show();
+        archiveAdapter = new ArchiveAdapter(this);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setAdapter(archiveAdapter);
+
+        fabAdd.setOnClickListener(v -> {
+            Toast.makeText(this, "Select a ZIP file to add", Toast.LENGTH_SHORT).show();
+            // TODO: Implement file picker
         });
+
+        searchBar.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                filterArchives(s.toString());
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+
+        // Load archives from internal storage
+        loadArchives();
 
         // Check if activity was launched with a file intent
         handleIntent(getIntent());
@@ -56,6 +83,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         handleIntent(intent);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadArchives();
     }
 
     /**
@@ -75,16 +108,22 @@ public class MainActivity extends AppCompatActivity {
      * Stores file in internal storage for privacy
      */
     private void openArchiveFile(Uri uri) {
-        try {
-            // Copy file to internal storage for privacy
-            File internalFile = copyToInternalStorage(uri);
-            
-            // TODO: Extract and display images from archive
-            Toast.makeText(this, "Opening archive: " + uri.getLastPathSegment(), Toast.LENGTH_LONG).show();
-            
-        } catch (Exception e) {
-            Toast.makeText(this, "Error opening archive: " + e.getMessage(), Toast.LENGTH_LONG).show();
-        }
+        new Thread(() -> {
+            try {
+                // Copy file to internal storage for privacy
+                File internalFile = copyToInternalStorage(uri);
+                
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Archive added: " + internalFile.getName(), Toast.LENGTH_SHORT).show();
+                    loadArchives();
+                });
+                
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Error opening archive: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+            }
+        }).start();
     }
 
     /**
@@ -126,13 +165,70 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Update RecyclerView layout between grid and list view
+     * Load all archives from internal storage
      */
-    private void updateLayoutManager() {
-        if (isGridView) {
-            recyclerView.setLayoutManager(new GridLayoutManager(this, 3));
-        } else {
-            recyclerView.setLayoutManager(new LinearLayoutManager(this));
+    private void loadArchives() {
+        archives.clear();
+        
+        File archivesDir = new File(getFilesDir(), "archives");
+        if (archivesDir.exists()) {
+            File[] files = archivesDir.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (file.isFile()) {
+                        archives.add(new ArchiveItem(file));
+                    }
+                }
+            }
         }
+        
+        filterArchives(searchBar.getText().toString());
+    }
+
+    /**
+     * Filter archives by search query
+     */
+    private void filterArchives(String query) {
+        filteredArchives.clear();
+        
+        if (query.isEmpty()) {
+            filteredArchives.addAll(archives);
+        } else {
+            String lowerQuery = query.toLowerCase();
+            for (ArchiveItem item : archives) {
+                if (item.getName().toLowerCase().contains(lowerQuery)) {
+                    filteredArchives.add(item);
+                }
+            }
+        }
+        
+        archiveAdapter.setArchives(filteredArchives);
+    }
+
+    @Override
+    public void onArchiveClick(ArchiveItem item) {
+        item.incrementViewCount();
+        
+        Intent intent = new Intent(this, GalleryActivity.class);
+        intent.putExtra(GalleryActivity.EXTRA_ARCHIVE_PATH, item.getFile().getAbsolutePath());
+        intent.putExtra(GalleryActivity.EXTRA_ARCHIVE_NAME, item.getName());
+        startActivity(intent);
+    }
+
+    @Override
+    public void onDeleteClick(ArchiveItem item) {
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Archive")
+                .setMessage("Are you sure you want to delete " + item.getName() + "?")
+                .setPositiveButton("Delete", (dialog, which) -> {
+                    if (item.getFile().delete()) {
+                        Toast.makeText(this, "Archive deleted", Toast.LENGTH_SHORT).show();
+                        loadArchives();
+                    } else {
+                        Toast.makeText(this, "Failed to delete archive", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 }

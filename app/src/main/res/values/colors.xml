@@ -8,4 +8,13 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="ic_launcher_background">#3DDC84</color>
+    
+    <!-- Dark theme colors -->
+    <color name="dark_background">#0F1419</color>
+    <color name="dark_surface">#1C2128</color>
+    <color name="dark_card">#252D38</color>
+    <color name="dark_text_primary">#FFFFFF</color>
+    <color name="dark_text_secondary">#8B949E</color>
+    <color name="accent_purple">#7C3AED</color>
+    <color name="accent_blue">#3B82F6</color>
 </resources>
