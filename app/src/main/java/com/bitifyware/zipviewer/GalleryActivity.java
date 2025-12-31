@@ -203,6 +203,7 @@ public class GalleryActivity extends AppCompatActivity {
     }
 
     private void onImageClick(int position) {
+        // Ensure fresh copy of images is set to avoid recycled bitmap references
         ImageViewerActivity.setSharedImages(images);
         android.content.Intent intent = new android.content.Intent(this, ImageViewerActivity.class);
         intent.putExtra(ImageViewerActivity.EXTRA_POSITION, position);

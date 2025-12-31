@@ -160,6 +160,7 @@ public class ImageViewerActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Don't clear shared images as they're managed by GalleryActivity
+        // Clear shared images to prevent accessing recycled bitmaps
+        sharedImages = null;
     }
 }
