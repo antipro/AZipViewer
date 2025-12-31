@@ -37,6 +37,12 @@
             android:name=".GalleryActivity"
             android:exported="false"
             android:parentActivityName=".MainActivity" />
+
+        <activity
+            android:name=".ImageViewerActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
+            android:parentActivityName=".GalleryActivity" />
     </application>
 
 </manifest>

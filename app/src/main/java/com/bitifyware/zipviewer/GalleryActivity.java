@@ -57,7 +57,7 @@ public class GalleryActivity extends AppCompatActivity {
         archiveName.setText(name);
 
         images = new ArrayList<>();
-        imageAdapter = new ImageAdapter(images);
+        imageAdapter = new ImageAdapter(images, this::onImageClick);
         imageRecyclerView.setAdapter(imageAdapter);
         updateLayoutManager();
 
@@ -140,5 +140,26 @@ public class GalleryActivity extends AppCompatActivity {
                 });
             }
         }).start();
+    }
+
+    private void onImageClick(int position) {
+        ImageViewerActivity.setSharedImages(images);
+        android.content.Intent intent = new android.content.Intent(this, ImageViewerActivity.class);
+        intent.putExtra(ImageViewerActivity.EXTRA_POSITION, position);
+        startActivity(intent);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Clean up bitmaps when activity is destroyed
+        if (images != null) {
+            for (Bitmap bitmap : images) {
+                if (bitmap != null && !bitmap.isRecycled()) {
+                    bitmap.recycle();
+                }
+            }
+            images.clear();
+        }
     }
 }

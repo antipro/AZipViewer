@@ -17,9 +17,15 @@ import java.util.List;
 public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHolder> {
 
     private List<Bitmap> images;
+    private OnImageClickListener clickListener;
 
-    public ImageAdapter(List<Bitmap> images) {
+    public interface OnImageClickListener {
+        void onImageClick(int position);
+    }
+
+    public ImageAdapter(List<Bitmap> images, OnImageClickListener clickListener) {
         this.images = images;
+        this.clickListener = clickListener;
     }
 
     @NonNull
@@ -34,6 +40,11 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
     public void onBindViewHolder(@NonNull ImageViewHolder holder, int position) {
         Bitmap bitmap = images.get(position);
         holder.imageView.setImageBitmap(bitmap);
+        holder.itemView.setOnClickListener(v -> {
+            if (clickListener != null) {
+                clickListener.onImageClick(position);
+            }
+        });
     }
 
     @Override
