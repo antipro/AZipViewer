@@ -12,6 +12,7 @@ public class ArchiveItem {
     private long size;
     private Date date;
     private int viewCount;
+    private String password;
 
     public ArchiveItem(File file) {
         this.file = file;
@@ -19,6 +20,7 @@ public class ArchiveItem {
         this.size = file.length();
         this.date = new Date(file.lastModified());
         this.viewCount = 0;
+        this.password = null;
     }
 
     public File getFile() {
@@ -57,5 +59,17 @@ public class ArchiveItem {
 
     public void incrementViewCount() {
         viewCount++;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public boolean hasPassword() {
+        return password != null && !password.isEmpty();
     }
 }

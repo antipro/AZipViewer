@@ -27,6 +27,7 @@ public class GalleryActivity extends AppCompatActivity {
 
     public static final String EXTRA_ARCHIVE_PATH = "archive_path";
     public static final String EXTRA_ARCHIVE_NAME = "archive_name";
+    public static final String EXTRA_PASSWORD = "password";
 
     private RecyclerView imageRecyclerView;
     private ImageButton btnBack, btnGridView, btnListView;
@@ -35,6 +36,7 @@ public class GalleryActivity extends AppCompatActivity {
     private boolean isGridView = true;
 
     private String archivePath;
+    private String password;
     private List<Bitmap> images;
 
     @Override
@@ -44,6 +46,7 @@ public class GalleryActivity extends AppCompatActivity {
 
         archivePath = getIntent().getStringExtra(EXTRA_ARCHIVE_PATH);
         String name = getIntent().getStringExtra(EXTRA_ARCHIVE_NAME);
+        password = getIntent().getStringExtra(EXTRA_PASSWORD);
 
         imageRecyclerView = findViewById(R.id.imageRecyclerView);
         btnBack = findViewById(R.id.btnBack);
@@ -97,6 +100,11 @@ public class GalleryActivity extends AppCompatActivity {
             try {
                 File archiveFile = new File(archivePath);
                 ZipFile zipFile = new ZipFile(archiveFile);
+
+                // Set password if archive is encrypted
+                if (zipFile.isEncrypted() && password != null && !password.isEmpty()) {
+                    zipFile.setPassword(password.toCharArray());
+                }
 
                 List<FileHeader> fileHeaders = zipFile.getFileHeaders();
                 List<Bitmap> loadedImages = new ArrayList<>();

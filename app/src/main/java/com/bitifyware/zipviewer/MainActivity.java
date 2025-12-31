@@ -5,6 +5,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.LayoutInflater;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -14,6 +16,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
+import net.lingala.zip4j.ZipFile;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -37,6 +41,7 @@ public class MainActivity extends AppCompatActivity implements ArchiveAdapter.On
     private ArchiveAdapter archiveAdapter;
     private List<ArchiveItem> archives;
     private List<ArchiveItem> filteredArchives;
+    private PasswordManager passwordManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +54,7 @@ public class MainActivity extends AppCompatActivity implements ArchiveAdapter.On
 
         archives = new ArrayList<>();
         filteredArchives = new ArrayList<>();
+        passwordManager = new PasswordManager(this);
 
         archiveAdapter = new ArchiveAdapter(this);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -113,9 +119,9 @@ public class MainActivity extends AppCompatActivity implements ArchiveAdapter.On
                 // Copy file to internal storage for privacy
                 File internalFile = copyToInternalStorage(uri);
                 
+                // Check if archive is encrypted and prompt for password
                 runOnUiThread(() -> {
-                    Toast.makeText(this, "Archive added: " + internalFile.getName(), Toast.LENGTH_SHORT).show();
-                    loadArchives();
+                    checkAndPromptForPassword(internalFile);
                 });
                 
             } catch (Exception e) {
@@ -124,6 +130,62 @@ public class MainActivity extends AppCompatActivity implements ArchiveAdapter.On
                 });
             }
         }).start();
+    }
+
+    /**
+     * Check if archive is encrypted and prompt for password
+     */
+    private void checkAndPromptForPassword(File archiveFile) {
+        new Thread(() -> {
+            try {
+                ZipFile zipFile = new ZipFile(archiveFile);
+                boolean isEncrypted = zipFile.isEncrypted();
+                
+                runOnUiThread(() -> {
+                    if (isEncrypted) {
+                        promptForPassword(archiveFile.getName(), null);
+                    } else {
+                        Toast.makeText(this, "Archive added: " + archiveFile.getName(), Toast.LENGTH_SHORT).show();
+                        loadArchives();
+                    }
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Archive added: " + archiveFile.getName(), Toast.LENGTH_SHORT).show();
+                    loadArchives();
+                });
+            }
+        }).start();
+    }
+
+    /**
+     * Prompt user to enter password for encrypted archive
+     */
+    private void promptForPassword(String fileName, Runnable onSuccess) {
+        View dialogView = LayoutInflater.from(this).inflate(android.R.layout.simple_list_item_1, null);
+        EditText passwordInput = new EditText(this);
+        passwordInput.setHint("Enter password");
+        passwordInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Password Required")
+                .setMessage("This archive is encrypted. Please enter the password:")
+                .setView(passwordInput)
+                .setPositiveButton("Save", (dialog, which) -> {
+                    String password = passwordInput.getText().toString();
+                    if (!password.isEmpty()) {
+                        passwordManager.savePassword(fileName, password);
+                        Toast.makeText(this, "Password saved", Toast.LENGTH_SHORT).show();
+                        loadArchives();
+                        if (onSuccess != null) {
+                            onSuccess.run();
+                        }
+                    }
+                })
+                .setNegativeButton("Skip", (dialog, which) -> {
+                    loadArchives();
+                })
+                .show();
     }
 
     /**
@@ -176,7 +238,13 @@ public class MainActivity extends AppCompatActivity implements ArchiveAdapter.On
             if (files != null) {
                 for (File file : files) {
                     if (file.isFile()) {
-                        archives.add(new ArchiveItem(file));
+                        ArchiveItem item = new ArchiveItem(file);
+                        // Load password from storage
+                        String password = passwordManager.getPassword(file.getName());
+                        if (password != null) {
+                            item.setPassword(password);
+                        }
+                        archives.add(item);
                     }
                 }
             }
@@ -209,10 +277,34 @@ public class MainActivity extends AppCompatActivity implements ArchiveAdapter.On
     public void onArchiveClick(ArchiveItem item) {
         item.incrementViewCount();
         
-        Intent intent = new Intent(this, GalleryActivity.class);
-        intent.putExtra(GalleryActivity.EXTRA_ARCHIVE_PATH, item.getFile().getAbsolutePath());
-        intent.putExtra(GalleryActivity.EXTRA_ARCHIVE_NAME, item.getName());
-        startActivity(intent);
+        // Check if password is needed and validate it
+        new Thread(() -> {
+            try {
+                ZipFile zipFile = new ZipFile(item.getFile());
+                if (zipFile.isEncrypted() && item.hasPassword()) {
+                    zipFile.setPassword(item.getPassword().toCharArray());
+                }
+                
+                // Try to access the archive
+                zipFile.getFileHeaders();
+                
+                runOnUiThread(() -> {
+                    Intent intent = new Intent(this, GalleryActivity.class);
+                    intent.putExtra(GalleryActivity.EXTRA_ARCHIVE_PATH, item.getFile().getAbsolutePath());
+                    intent.putExtra(GalleryActivity.EXTRA_ARCHIVE_NAME, item.getName());
+                    intent.putExtra(GalleryActivity.EXTRA_PASSWORD, item.getPassword());
+                    startActivity(intent);
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    // Password might be wrong or missing
+                    promptForPassword(item.getName(), () -> {
+                        // Retry opening
+                        onArchiveClick(item);
+                    });
+                });
+            }
+        }).start();
     }
 
     @Override
@@ -222,6 +314,8 @@ public class MainActivity extends AppCompatActivity implements ArchiveAdapter.On
                 .setMessage("Are you sure you want to delete " + item.getName() + "?")
                 .setPositiveButton("Delete", (dialog, which) -> {
                     if (item.getFile().delete()) {
+                        // Also remove password
+                        passwordManager.removePassword(item.getName());
                         Toast.makeText(this, "Archive deleted", Toast.LENGTH_SHORT).show();
                         loadArchives();
                     } else {

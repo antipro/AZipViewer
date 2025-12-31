@@ -4,6 +4,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -55,7 +56,8 @@ public class ArchiveAdapter extends RecyclerView.Adapter<ArchiveAdapter.ArchiveV
     }
 
     class ArchiveViewHolder extends RecyclerView.ViewHolder {
-        TextView fileName, fileSize, fileDate, viewCount;
+        TextView fileName, fileSize, fileDate, viewCount, passwordText;
+        LinearLayout passwordContainer;
         ImageButton btnDelete;
 
         public ArchiveViewHolder(@NonNull View itemView) {
@@ -64,6 +66,8 @@ public class ArchiveAdapter extends RecyclerView.Adapter<ArchiveAdapter.ArchiveV
             fileSize = itemView.findViewById(R.id.fileSize);
             fileDate = itemView.findViewById(R.id.fileDate);
             viewCount = itemView.findViewById(R.id.viewCount);
+            passwordText = itemView.findViewById(R.id.passwordText);
+            passwordContainer = itemView.findViewById(R.id.passwordContainer);
             btnDelete = itemView.findViewById(R.id.btnDelete);
 
             itemView.setOnClickListener(v -> {
@@ -86,6 +90,14 @@ public class ArchiveAdapter extends RecyclerView.Adapter<ArchiveAdapter.ArchiveV
             fileSize.setText(item.getFormattedSize());
             fileDate.setText(item.getFormattedDate());
             viewCount.setText(String.valueOf(item.getViewCount()));
+
+            // Show password if exists
+            if (item.hasPassword()) {
+                passwordContainer.setVisibility(View.VISIBLE);
+                passwordText.setText("Password: " + item.getPassword());
+            } else {
+                passwordContainer.setVisibility(View.GONE);
+            }
         }
     }
 }

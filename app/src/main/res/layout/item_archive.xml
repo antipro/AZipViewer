@@ -44,6 +44,34 @@
                 android:maxLines="1"
                 android:ellipsize="end" />
 
+            <!-- Password Display -->
+            <LinearLayout
+                android:id="@+id/passwordContainer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="4dp"
+                android:visibility="gone"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:src="@android:drawable/ic_lock_lock"
+                    android:tint="@color/accent_purple"
+                    android:contentDescription="Password" />
+
+                <TextView
+                    android:id="@+id/passwordText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Password: ****"
+                    android:textColor="@color/accent_purple"
+                    android:textSize="12sp"
+                    android:layout_marginStart="4dp"
+                    android:fontFamily="monospace" />
+            </LinearLayout>
+
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
