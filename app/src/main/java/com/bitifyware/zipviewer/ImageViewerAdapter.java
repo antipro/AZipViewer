@@ -44,7 +44,7 @@ public class ImageViewerAdapter extends RecyclerView.Adapter<ImageViewerAdapter.
         if (savedRotation != null && savedRotation != 0f) {
             // Use cached rotated bitmap if available
             Bitmap rotatedBitmap = rotatedBitmaps.get(position);
-            if (rotatedBitmap == null || rotatedBitmap.isRecycled()) {
+            if (rotatedBitmap == null || isBitmapRecycled(rotatedBitmap)) {
                 rotatedBitmap = rotateBitmap(bitmap, savedRotation);
                 rotatedBitmaps.put(position, rotatedBitmap);
             }
@@ -75,8 +75,22 @@ public class ImageViewerAdapter extends RecyclerView.Adapter<ImageViewerAdapter.
         rotationMap.put(position, rotation);
         // Clear cached rotated bitmap to force recreation
         Bitmap oldRotated = rotatedBitmaps.remove(position);
-        if (oldRotated != null && !oldRotated.isRecycled() && oldRotated != images.get(position)) {
+        if (oldRotated != null && !isBitmapRecycled(oldRotated) && oldRotated != images.get(position)) {
             oldRotated.recycle();
+        }
+    }
+    
+    /**
+     * Safely check if a bitmap is recycled
+     */
+    private boolean isBitmapRecycled(Bitmap bitmap) {
+        if (bitmap == null) {
+            return true;
+        }
+        try {
+            return bitmap.isRecycled();
+        } catch (IllegalStateException e) {
+            return true;
         }
     }
 
@@ -86,6 +100,19 @@ public class ImageViewerAdapter extends RecyclerView.Adapter<ImageViewerAdapter.
     public float getRotation(int position) {
         Float rotation = rotationMap.get(position);
         return rotation != null ? rotation : 0f;
+    }
+    
+    /**
+     * Clean up cached rotated bitmaps to prevent memory leaks
+     */
+    public void cleanup() {
+        for (Bitmap bitmap : rotatedBitmaps.values()) {
+            if (bitmap != null && !isBitmapRecycled(bitmap) && !images.contains(bitmap)) {
+                bitmap.recycle();
+            }
+        }
+        rotatedBitmaps.clear();
+        rotationMap.clear();
     }
 
     static class ImageViewerViewHolder extends RecyclerView.ViewHolder {

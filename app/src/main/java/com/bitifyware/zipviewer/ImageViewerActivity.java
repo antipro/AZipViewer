@@ -162,6 +162,10 @@ public class ImageViewerActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        // Clean up adapter cached bitmaps
+        if (adapter != null) {
+            adapter.cleanup();
+        }
         // Clear shared images to prevent accessing recycled bitmaps
         sharedImages = null;
     }
