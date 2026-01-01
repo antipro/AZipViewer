@@ -121,6 +121,14 @@ public class ImageViewerActivity extends AppCompatActivity {
         findViewById(R.id.topBar).setOnClickListener(v -> toggleUI());
     }
 
+    @Override
+    public void onConfigurationChanged(@androidx.annotation.NonNull android.content.res.Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        // Handle orientation change
+        // ViewPager2 and PhotoView will automatically adjust to new orientation
+        // The image rotation state is preserved in the adapter
+    }
+
     private PhotoView getCurrentPhotoView() {
         try {
             // Get the RecyclerView that ViewPager2 uses internally

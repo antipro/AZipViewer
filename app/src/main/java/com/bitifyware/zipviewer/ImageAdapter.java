@@ -16,14 +16,14 @@ import java.util.List;
  */
 public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHolder> {
 
-    private List<Bitmap> images;
+    private List<ImageEntry> images;
     private OnImageClickListener clickListener;
 
     public interface OnImageClickListener {
         void onImageClick(int position);
     }
 
-    public ImageAdapter(List<Bitmap> images, OnImageClickListener clickListener) {
+    public ImageAdapter(List<ImageEntry> images, OnImageClickListener clickListener) {
         this.images = images;
         this.clickListener = clickListener;
     }
@@ -38,8 +38,27 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
 
     @Override
     public void onBindViewHolder(@NonNull ImageViewHolder holder, int position) {
-        Bitmap bitmap = images.get(position);
-        holder.imageView.setImageBitmap(bitmap);
+        ImageEntry imageEntry = images.get(position);
+        
+        // Show thumbnail if available, otherwise show placeholder
+        if (imageEntry.hasThumbnail()) {
+            holder.imageView.setImageBitmap(imageEntry.getThumbnail());
+            holder.imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        } else if (imageEntry.isThumbnailLoading()) {
+            // Show placeholder icon while loading
+            holder.imageView.setImageResource(R.drawable.ic_image_placeholder);
+            holder.imageView.setScaleType(ImageView.ScaleType.CENTER);
+        } else {
+            // Fallback to full bitmap if no thumbnail (for small images)
+            if (imageEntry.hasFullBitmap()) {
+                holder.imageView.setImageBitmap(imageEntry.getFullBitmap());
+                holder.imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            } else {
+                holder.imageView.setImageResource(R.drawable.ic_image_placeholder);
+                holder.imageView.setScaleType(ImageView.ScaleType.CENTER);
+            }
+        }
+        
         holder.itemView.setOnClickListener(v -> {
             if (clickListener != null) {
                 int adapterPosition = holder.getBindingAdapterPosition();

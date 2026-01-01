@@ -36,11 +36,13 @@
         <activity
             android:name=".GalleryActivity"
             android:exported="false"
+            android:configChanges="orientation|screenSize|screenLayout"
             android:parentActivityName=".MainActivity" />
 
         <activity
             android:name=".ImageViewerActivity"
             android:exported="false"
+            android:configChanges="orientation|screenSize|screenLayout"
             android:theme="@style/Theme.ImageViewer"
             android:parentActivityName=".GalleryActivity" />
     </application>
