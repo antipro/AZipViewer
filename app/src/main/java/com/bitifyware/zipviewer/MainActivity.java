@@ -328,7 +328,7 @@ public class MainActivity extends AppCompatActivity implements ArchiveAdapter.On
         String nameWithoutExt = fileName;
         String extension = "";
         int lastDotIndex = fileName.lastIndexOf('.');
-        if (lastDotIndex > 0) {
+        if (lastDotIndex > 0 && lastDotIndex < fileName.length() - 1) {
             nameWithoutExt = fileName.substring(0, lastDotIndex);
             extension = fileName.substring(lastDotIndex);
         }
