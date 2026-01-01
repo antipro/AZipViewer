@@ -75,8 +75,11 @@ public class ImageViewerAdapter extends RecyclerView.Adapter<ImageViewerAdapter.
         rotationMap.put(position, rotation);
         // Clear cached rotated bitmap to force recreation
         Bitmap oldRotated = rotatedBitmaps.remove(position);
-        if (oldRotated != null && !isBitmapRecycled(oldRotated) && oldRotated != images.get(position)) {
-            oldRotated.recycle();
+        if (oldRotated != null && !isBitmapRecycled(oldRotated)) {
+            // Check if this bitmap is one of the original images (don't recycle those)
+            if (position >= 0 && position < images.size() && oldRotated != images.get(position)) {
+                oldRotated.recycle();
+            }
         }
     }
     
@@ -104,11 +107,17 @@ public class ImageViewerAdapter extends RecyclerView.Adapter<ImageViewerAdapter.
     
     /**
      * Clean up cached rotated bitmaps to prevent memory leaks
+     * Call this when the adapter is no longer needed
      */
     public void cleanup() {
-        for (Bitmap bitmap : rotatedBitmaps.values()) {
-            if (bitmap != null && !isBitmapRecycled(bitmap) && !images.contains(bitmap)) {
-                bitmap.recycle();
+        for (Map.Entry<Integer, Bitmap> entry : rotatedBitmaps.entrySet()) {
+            Bitmap bitmap = entry.getValue();
+            int position = entry.getKey();
+            // Only recycle if it's not null, not recycled, and not one of the original images
+            if (bitmap != null && !isBitmapRecycled(bitmap)) {
+                if (position < 0 || position >= images.size() || bitmap != images.get(position)) {
+                    bitmap.recycle();
+                }
             }
         }
         rotatedBitmaps.clear();
