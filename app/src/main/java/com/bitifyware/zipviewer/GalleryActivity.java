@@ -233,53 +233,14 @@ public class GalleryActivity extends AppCompatActivity {
     }
 
     private void onImageClick(int position) {
-        // Load full bitmaps on-demand from archive
-        new Thread(() -> {
-            List<Bitmap> fullBitmaps = new ArrayList<>();
-            try {
-                File archiveFile = new File(archivePath);
-                ZipFile zipFile = new ZipFile(archiveFile);
-
-                // Set password if archive is encrypted
-                if (zipFile.isEncrypted() && password != null && !password.isEmpty()) {
-                    zipFile.setPassword(password.toCharArray());
-                }
-
-                // Load full bitmaps for all images
-                for (ImageEntry entry : images) {
-                    try {
-                        FileHeader fileHeader = zipFile.getFileHeader(entry.getFileName());
-                        if (fileHeader != null) {
-                            InputStream inputStream = zipFile.getInputStream(fileHeader);
-                            Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-                            inputStream.close();
-                            
-                            if (bitmap != null) {
-                                fullBitmaps.add(bitmap);
-                            }
-                        }
-                    } catch (Exception e) {
-                        // If loading fails, use thumbnail as fallback
-                        if (entry.hasThumbnail()) {
-                            fullBitmaps.add(entry.getThumbnail());
-                        }
-                    }
-                }
-
-                runOnUiThread(() -> {
-                    // Set shared images and open viewer
-                    ImageViewerActivity.setSharedImages(fullBitmaps);
-                    android.content.Intent intent = new android.content.Intent(this, ImageViewerActivity.class);
-                    intent.putExtra(ImageViewerActivity.EXTRA_POSITION, position);
-                    startActivity(intent);
-                });
-
-            } catch (Exception e) {
-                runOnUiThread(() -> {
-                    Toast.makeText(this, "Error loading images: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
-            }
-        }).start();
+        // Pass image entries and archive info to ImageViewerActivity
+        // Images will be loaded on-demand in the viewer
+        ImageViewerActivity.setSharedImageEntries(images);
+        android.content.Intent intent = new android.content.Intent(this, ImageViewerActivity.class);
+        intent.putExtra(ImageViewerActivity.EXTRA_POSITION, position);
+        intent.putExtra(ImageViewerActivity.EXTRA_ARCHIVE_PATH, archivePath);
+        intent.putExtra(ImageViewerActivity.EXTRA_PASSWORD, password);
+        startActivity(intent);
     }
 
     /**

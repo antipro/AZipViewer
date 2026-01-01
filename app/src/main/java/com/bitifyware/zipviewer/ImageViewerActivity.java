@@ -5,12 +5,14 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.github.chrisbanes.photoview.PhotoView;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -19,18 +21,22 @@ import java.util.List;
 public class ImageViewerActivity extends AppCompatActivity {
 
     public static final String EXTRA_POSITION = "position";
+    public static final String EXTRA_ARCHIVE_PATH = "archive_path";
+    public static final String EXTRA_PASSWORD = "password";
     
-    // Static field to hold images temporarily (avoids parcelable/serialization issues)
-    private static List<Bitmap> sharedImages;
+    // Static field to hold image entries temporarily (avoids parcelable/serialization issues)
+    private static List<ImageEntry> sharedImageEntries;
 
     private ViewPager2 viewPager;
     private ImageButton btnBack, btnRotateLeft, btnRotateRight, btnZoomIn, btnZoomOut;
     private TextView tvImageCounter, tvSwipeHint;
     private ImageViewerAdapter adapter;
     private int currentPosition;
+    private String archivePath;
+    private String password;
 
-    public static void setSharedImages(List<Bitmap> images) {
-        sharedImages = images;
+    public static void setSharedImageEntries(List<ImageEntry> entries) {
+        sharedImageEntries = entries;
     }
 
     @Override
@@ -54,16 +60,19 @@ public class ImageViewerActivity extends AppCompatActivity {
         tvImageCounter = findViewById(R.id.tvImageCounter);
         tvSwipeHint = findViewById(R.id.tvSwipeHint);
 
-        // Get position from intent
+        // Get position and archive info from intent
         currentPosition = getIntent().getIntExtra(EXTRA_POSITION, 0);
+        archivePath = getIntent().getStringExtra(EXTRA_ARCHIVE_PATH);
+        password = getIntent().getStringExtra(EXTRA_PASSWORD);
 
-        if (sharedImages == null || sharedImages.isEmpty()) {
+        if (sharedImageEntries == null || sharedImageEntries.isEmpty()) {
+            Toast.makeText(this, "No images available", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
 
-        // Setup adapter
-        adapter = new ImageViewerAdapter(sharedImages);
+        // Setup adapter with on-demand loading
+        adapter = new ImageViewerAdapter(this, sharedImageEntries, archivePath, password);
         viewPager.setAdapter(adapter);
         viewPager.setCurrentItem(currentPosition, false);
 
@@ -151,8 +160,8 @@ public class ImageViewerActivity extends AppCompatActivity {
     }
 
     private void updateImageCounter(int position) {
-        if (sharedImages != null) {
-            tvImageCounter.setText((position + 1) + " / " + sharedImages.size());
+        if (sharedImageEntries != null) {
+            tvImageCounter.setText((position + 1) + " / " + sharedImageEntries.size());
         }
     }
 
@@ -174,7 +183,7 @@ public class ImageViewerActivity extends AppCompatActivity {
         if (adapter != null) {
             adapter.cleanup();
         }
-        // Clear shared images to prevent accessing recycled bitmaps
-        sharedImages = null;
+        // Clear shared image entries to prevent accessing recycled bitmaps
+        sharedImageEntries = null;
     }
 }

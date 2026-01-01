@@ -1,31 +1,53 @@
 package com.bitifyware.zipviewer;
 
+import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.github.chrisbanes.photoview.PhotoView;
 
+import net.lingala.zip4j.ZipFile;
+import net.lingala.zip4j.model.FileHeader;
+
+import java.io.File;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Adapter for ViewPager2 to display full-screen zoomable images
+ * Images are loaded on-demand from the archive to prevent memory exhaustion
  */
 public class ImageViewerAdapter extends RecyclerView.Adapter<ImageViewerAdapter.ImageViewerViewHolder> {
 
-    private List<Bitmap> images;
+    private Context context;
+    private List<ImageEntry> imageEntries;
+    private String archivePath;
+    private String password;
     private Map<Integer, Float> rotationMap = new HashMap<>();
+    private Map<Integer, Bitmap> loadedBitmaps = new HashMap<>();
     private Map<Integer, Bitmap> rotatedBitmaps = new HashMap<>();
+    private ExecutorService executorService = Executors.newFixedThreadPool(2);
+    private Handler mainHandler = new Handler(Looper.getMainLooper());
 
-    public ImageViewerAdapter(List<Bitmap> images) {
-        this.images = images;
+    public ImageViewerAdapter(Context context, List<ImageEntry> imageEntries, String archivePath, String password) {
+        this.context = context;
+        this.imageEntries = imageEntries;
+        this.archivePath = archivePath;
+        this.password = password;
     }
 
     @NonNull
@@ -38,7 +60,75 @@ public class ImageViewerAdapter extends RecyclerView.Adapter<ImageViewerAdapter.
 
     @Override
     public void onBindViewHolder(@NonNull ImageViewerViewHolder holder, int position) {
-        Bitmap bitmap = images.get(position);
+        // First, show thumbnail if available
+        ImageEntry entry = imageEntries.get(position);
+        if (entry.hasThumbnail()) {
+            holder.photoView.setImageBitmap(entry.getThumbnail());
+        }
+        
+        // Check if full bitmap is already loaded
+        Bitmap loadedBitmap = loadedBitmaps.get(position);
+        if (loadedBitmap != null && !isBitmapRecycled(loadedBitmap)) {
+            // Use cached bitmap
+            displayBitmap(holder, position, loadedBitmap);
+        } else {
+            // Load bitmap from archive in background
+            loadBitmapAsync(holder, position);
+        }
+        
+        // Configure PhotoView for double-tap zoom
+        setupPhotoView(holder);
+    }
+    
+    /**
+     * Load bitmap from archive asynchronously
+     */
+    private void loadBitmapAsync(@NonNull ImageViewerViewHolder holder, int position) {
+        ImageEntry entry = imageEntries.get(position);
+        
+        executorService.execute(() -> {
+            try {
+                File archiveFile = new File(archivePath);
+                ZipFile zipFile = new ZipFile(archiveFile);
+                
+                // Set password if archive is encrypted
+                if (zipFile.isEncrypted() && password != null && !password.isEmpty()) {
+                    zipFile.setPassword(password.toCharArray());
+                }
+                
+                FileHeader fileHeader = zipFile.getFileHeader(entry.getFileName());
+                if (fileHeader != null) {
+                    InputStream inputStream = zipFile.getInputStream(fileHeader);
+                    Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+                    inputStream.close();
+                    
+                    if (bitmap != null) {
+                        // Cache the loaded bitmap
+                        loadedBitmaps.put(position, bitmap);
+                        
+                        // Update UI on main thread
+                        mainHandler.post(() -> {
+                            if (holder.getBindingAdapterPosition() == position) {
+                                displayBitmap(holder, position, bitmap);
+                            }
+                        });
+                    }
+                }
+            } catch (Exception e) {
+                // Show error on main thread
+                mainHandler.post(() -> {
+                    if (context != null) {
+                        Toast.makeText(context, "Error loading image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+        });
+    }
+    
+    /**
+     * Display bitmap with rotation if applicable
+     */
+    private void displayBitmap(@NonNull ImageViewerViewHolder holder, int position, Bitmap bitmap) {
         Float savedRotation = rotationMap.get(position);
         
         if (savedRotation != null && savedRotation != 0f) {
@@ -52,8 +142,12 @@ public class ImageViewerAdapter extends RecyclerView.Adapter<ImageViewerAdapter.
         } else {
             holder.photoView.setImageBitmap(bitmap);
         }
-        
-        // Configure PhotoView for double-tap zoom
+    }
+    
+    /**
+     * Setup PhotoView configuration
+     */
+    private void setupPhotoView(@NonNull ImageViewerViewHolder holder) {
         // Set maximum scale to show actual pixels (1:1)
         holder.photoView.setMaximumScale(5.0f);
         holder.photoView.setMediumScale(3.0f);
@@ -95,7 +189,7 @@ public class ImageViewerAdapter extends RecyclerView.Adapter<ImageViewerAdapter.
 
     @Override
     public int getItemCount() {
-        return images.size();
+        return imageEntries.size();
     }
 
     /**
@@ -115,8 +209,9 @@ public class ImageViewerAdapter extends RecyclerView.Adapter<ImageViewerAdapter.
         // Clear cached rotated bitmap to force recreation
         Bitmap oldRotated = rotatedBitmaps.remove(position);
         if (oldRotated != null && !isBitmapRecycled(oldRotated)) {
-            // Check if this bitmap is one of the original images (don't recycle those)
-            if (position >= 0 && position < images.size() && oldRotated != images.get(position)) {
+            // Check if this bitmap is one of the loaded images (don't recycle those)
+            Bitmap loadedBitmap = loadedBitmaps.get(position);
+            if (loadedBitmap != null && oldRotated != loadedBitmap) {
                 oldRotated.recycle();
             }
         }
@@ -149,17 +244,31 @@ public class ImageViewerAdapter extends RecyclerView.Adapter<ImageViewerAdapter.
      * Call this when the adapter is no longer needed
      */
     public void cleanup() {
+        // Shutdown executor service
+        executorService.shutdown();
+        
+        // Clean up rotated bitmaps
         for (Map.Entry<Integer, Bitmap> entry : rotatedBitmaps.entrySet()) {
             Bitmap bitmap = entry.getValue();
             int position = entry.getKey();
-            // Only recycle if it's not null, not recycled, and not one of the original images
+            // Only recycle if it's not null, not recycled, and not one of the loaded images
             if (bitmap != null && !isBitmapRecycled(bitmap)) {
-                if (position < 0 || position >= images.size() || bitmap != images.get(position)) {
+                Bitmap loadedBitmap = loadedBitmaps.get(position);
+                if (loadedBitmap == null || bitmap != loadedBitmap) {
                     bitmap.recycle();
                 }
             }
         }
         rotatedBitmaps.clear();
+        
+        // Clean up loaded bitmaps
+        for (Bitmap bitmap : loadedBitmaps.values()) {
+            if (bitmap != null && !isBitmapRecycled(bitmap)) {
+                bitmap.recycle();
+            }
+        }
+        loadedBitmaps.clear();
+        
         rotationMap.clear();
     }
 
