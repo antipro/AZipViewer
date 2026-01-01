@@ -52,6 +52,45 @@ public class ImageViewerAdapter extends RecyclerView.Adapter<ImageViewerAdapter.
         } else {
             holder.photoView.setImageBitmap(bitmap);
         }
+        
+        // Configure PhotoView for double-tap zoom
+        // Set maximum scale to show actual pixels (1:1)
+        holder.photoView.setMaximumScale(5.0f);
+        holder.photoView.setMediumScale(3.0f);
+        holder.photoView.setMinimumScale(0.5f);
+        
+        // Enable zoom and double-tap
+        holder.photoView.setZoomable(true);
+        
+        // Add double-tap listener to toggle between fit and actual size
+        holder.photoView.setOnDoubleTapListener(new android.view.GestureDetector.OnDoubleTapListener() {
+            @Override
+            public boolean onSingleTapConfirmed(android.view.MotionEvent e) {
+                return false;
+            }
+
+            @Override
+            public boolean onDoubleTap(android.view.MotionEvent e) {
+                float currentScale = holder.photoView.getScale();
+                float minScale = holder.photoView.getMinimumScale();
+                float maxScale = holder.photoView.getMaximumScale();
+                
+                // Toggle between fit and actual size (1:1 scale)
+                if (currentScale < 0.95f || currentScale > 1.05f) {
+                    // Not at 1:1, zoom to actual size
+                    holder.photoView.setScale(1.0f, e.getX(), e.getY(), true);
+                } else {
+                    // At actual size, zoom back to fit
+                    holder.photoView.setScale(minScale, true);
+                }
+                return true;
+            }
+
+            @Override
+            public boolean onDoubleTapEvent(android.view.MotionEvent e) {
+                return false;
+            }
+        });
     }
 
     @Override

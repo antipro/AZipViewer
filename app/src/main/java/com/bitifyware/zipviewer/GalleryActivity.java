@@ -43,7 +43,7 @@ public class GalleryActivity extends AppCompatActivity {
     private String archivePath;
     private String password;
     private String archiveFileName;
-    private List<Bitmap> images;
+    private List<ImageEntry> images;
     private PasswordManager passwordManager;
 
     @Override
@@ -88,6 +88,18 @@ public class GalleryActivity extends AppCompatActivity {
         loadImagesFromArchive();
     }
 
+    @Override
+    public void onConfigurationChanged(@androidx.annotation.NonNull android.content.res.Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        // Handle orientation change
+        // The layout manager will automatically adjust, but we can do custom handling here if needed
+        if (newConfig.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
+            // Landscape mode - could adjust grid columns if desired
+        } else if (newConfig.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT) {
+            // Portrait mode
+        }
+    }
+
     private void updateLayoutManager() {
         if (isGridView) {
             imageRecyclerView.setLayoutManager(new GridLayoutManager(this, 3));
@@ -116,20 +128,36 @@ public class GalleryActivity extends AppCompatActivity {
                 }
 
                 List<FileHeader> fileHeaders = zipFile.getFileHeaders();
-                List<Bitmap> loadedImages = new ArrayList<>();
+                List<ImageEntry> loadedImages = new ArrayList<>();
 
+                // First pass: Create image entries and load small images directly
                 for (FileHeader fileHeader : fileHeaders) {
                     String fileName = fileHeader.getFileName().toLowerCase();
                     if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg") ||
                         fileName.endsWith(".png") || fileName.endsWith(".gif") ||
                         fileName.endsWith(".bmp") || fileName.endsWith(".webp")) {
 
+                        ImageEntry imageEntry = new ImageEntry(fileHeader.getFileName());
+                        imageEntry.setFileSize(fileHeader.getUncompressedSize());
+                        
+                        // Load the image
                         InputStream inputStream = zipFile.getInputStream(fileHeader);
                         Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-                        if (bitmap != null) {
-                            loadedImages.add(bitmap);
-                        }
                         inputStream.close();
+                        
+                        if (bitmap != null) {
+                            imageEntry.setFullBitmap(bitmap);
+                            
+                            // Check if thumbnail is needed based on bitmap size
+                            if (ThumbnailGenerator.needsThumbnail(bitmap)) {
+                                imageEntry.setThumbnailLoading(true);
+                                loadedImages.add(imageEntry);
+                            } else {
+                                // For small images, use the bitmap as thumbnail too
+                                imageEntry.setThumbnail(bitmap);
+                                loadedImages.add(imageEntry);
+                            }
+                        }
                     }
                 }
 
@@ -142,6 +170,22 @@ public class GalleryActivity extends AppCompatActivity {
                         Toast.makeText(this, "No images found in archive", Toast.LENGTH_SHORT).show();
                     }
                 });
+
+                // Second pass: Generate thumbnails in background for large images
+                for (int i = 0; i < loadedImages.size(); i++) {
+                    ImageEntry entry = loadedImages.get(i);
+                    if (entry.isThumbnailLoading() && entry.hasFullBitmap()) {
+                        final int position = i;
+                        Bitmap thumbnail = ThumbnailGenerator.generateThumbnail(entry.getFullBitmap());
+                        entry.setThumbnail(thumbnail);
+                        entry.setThumbnailLoading(false);
+                        
+                        // Update UI on main thread
+                        runOnUiThread(() -> {
+                            imageAdapter.notifyItemChanged(position);
+                        });
+                    }
+                }
 
             } catch (ZipException e) {
                 // Check if it's a password-related error
@@ -203,8 +247,16 @@ public class GalleryActivity extends AppCompatActivity {
     }
 
     private void onImageClick(int position) {
+        // Extract full bitmaps for viewer
+        List<Bitmap> fullBitmaps = new ArrayList<>();
+        for (ImageEntry entry : images) {
+            if (entry.hasFullBitmap()) {
+                fullBitmaps.add(entry.getFullBitmap());
+            }
+        }
+        
         // Ensure fresh copy of images is set to avoid recycled bitmap references
-        ImageViewerActivity.setSharedImages(images);
+        ImageViewerActivity.setSharedImages(fullBitmaps);
         android.content.Intent intent = new android.content.Intent(this, ImageViewerActivity.class);
         intent.putExtra(ImageViewerActivity.EXTRA_POSITION, position);
         startActivity(intent);
@@ -215,9 +267,9 @@ public class GalleryActivity extends AppCompatActivity {
         super.onDestroy();
         // Clean up bitmaps when activity is destroyed
         if (images != null) {
-            for (Bitmap bitmap : images) {
-                if (bitmap != null && !bitmap.isRecycled()) {
-                    bitmap.recycle();
+            for (ImageEntry entry : images) {
+                if (entry != null) {
+                    entry.recycle();
                 }
             }
             images.clear();
