@@ -42,7 +42,10 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
         holder.imageView.setImageBitmap(bitmap);
         holder.itemView.setOnClickListener(v -> {
             if (clickListener != null) {
-                clickListener.onImageClick(position);
+                int adapterPosition = holder.getBindingAdapterPosition();
+                if (adapterPosition != RecyclerView.NO_POSITION) {
+                    clickListener.onImageClick(adapterPosition);
+                }
             }
         });
     }

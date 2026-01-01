@@ -57,7 +57,7 @@ public class MainActivity extends AppCompatActivity implements ArchiveAdapter.On
                 new ActivityResultContracts.OpenDocument(),
                 uri -> {
                     if (uri != null) {
-                        openArchiveFile(uri);
+                        openArchiveFile(uri, false);
                     }
                 }
         );
@@ -123,7 +123,7 @@ public class MainActivity extends AppCompatActivity implements ArchiveAdapter.On
         if (Intent.ACTION_VIEW.equals(intent.getAction())) {
             Uri uri = intent.getData();
             if (uri != null) {
-                openArchiveFile(uri);
+                openArchiveFile(uri, true);
             }
         }
     }
@@ -131,8 +131,10 @@ public class MainActivity extends AppCompatActivity implements ArchiveAdapter.On
     /**
      * Open and process archive file from URI
      * Stores file in internal storage for privacy
+     * @param uri The URI of the file to open
+     * @param fromSharedIntent true if opened from other apps (ACTION_VIEW), false if from file picker
      */
-    private void openArchiveFile(Uri uri) {
+    private void openArchiveFile(Uri uri, boolean fromSharedIntent) {
         new Thread(() -> {
             try {
                 // Get filename first to check for conflicts
@@ -148,7 +150,7 @@ public class MainActivity extends AppCompatActivity implements ArchiveAdapter.On
                 if (targetFile.exists()) {
                     // Show confirmation dialog on UI thread
                     runOnUiThread(() -> {
-                        showFileExistsDialog(uri, fileName);
+                        showFileExistsDialog(uri, fileName, fromSharedIntent);
                     });
                 } else {
                     // File doesn't exist, proceed with copy
@@ -156,7 +158,7 @@ public class MainActivity extends AppCompatActivity implements ArchiveAdapter.On
                     
                     // Check if archive is encrypted and prompt for password
                     runOnUiThread(() -> {
-                        checkAndPromptForPassword(internalFile);
+                        checkAndPromptForPassword(internalFile, fromSharedIntent);
                     });
                 }
                 
@@ -170,28 +172,98 @@ public class MainActivity extends AppCompatActivity implements ArchiveAdapter.On
 
     /**
      * Check if archive is encrypted and prompt for password
+     * @param archiveFile The archive file to check
+     * @param fromSharedIntent true if opened from other apps, false if from file picker
      */
-    private void checkAndPromptForPassword(File archiveFile) {
+    private void checkAndPromptForPassword(File archiveFile, boolean fromSharedIntent) {
         new Thread(() -> {
             try {
                 ZipFile zipFile = new ZipFile(archiveFile);
                 boolean isEncrypted = zipFile.isEncrypted();
                 
                 runOnUiThread(() -> {
-                    if (isEncrypted) {
+                    if (isEncrypted && fromSharedIntent) {
+                        // For shared files, prompt for password and then open
+                        promptForPasswordAndOpen(archiveFile.getName(), archiveFile);
+                    } else if (isEncrypted) {
+                        // For file picker, just prompt to save password (don't open)
                         promptForPassword(archiveFile.getName(), null);
+                    } else if (fromSharedIntent) {
+                        // Non-encrypted shared file - open directly
+                        showArchiveAddedMessage(archiveFile.getName());
+                        openGallery(archiveFile, null);
                     } else {
-                        Toast.makeText(this, "Archive added: " + archiveFile.getName(), Toast.LENGTH_SHORT).show();
-                        loadArchives();
+                        // Non-encrypted file from picker - just add it
+                        showArchiveAddedMessage(archiveFile.getName());
                     }
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
-                    Toast.makeText(this, "Archive added: " + archiveFile.getName(), Toast.LENGTH_SHORT).show();
-                    loadArchives();
+                    showArchiveAddedMessage(archiveFile.getName());
+                    if (fromSharedIntent) {
+                        openGallery(archiveFile, null);
+                    }
                 });
             }
         }).start();
+    }
+
+    /**
+     * Show archive added message and reload archives list
+     */
+    private void showArchiveAddedMessage(String fileName) {
+        Toast.makeText(this, "Archive added: " + fileName, Toast.LENGTH_SHORT).show();
+        loadArchives();
+    }
+
+    /**
+     * Prompt user to enter password for encrypted archive and open it after
+     */
+    private void promptForPasswordAndOpen(String fileName, File archiveFile) {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_password, null);
+        EditText passwordInput = dialogView.findViewById(R.id.passwordInput);
+        
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setCancelable(false)
+                .create();
+        
+        // Make dialog background transparent to show custom background
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+        
+        dialogView.findViewById(R.id.btnCancel).setOnClickListener(v -> {
+            dialog.dismiss();
+            loadArchives();
+        });
+        
+        dialogView.findViewById(R.id.btnUnlock).setOnClickListener(v -> {
+            String password = passwordInput.getText().toString();
+            if (!password.isEmpty()) {
+                passwordManager.savePassword(fileName, password);
+                Toast.makeText(this, "Password saved", Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+                loadArchives();
+                // Open the gallery after password is set
+                openGallery(archiveFile, password);
+            } else {
+                Toast.makeText(this, "Password cannot be empty", Toast.LENGTH_SHORT).show();
+            }
+        });
+        
+        dialog.show();
+    }
+
+    /**
+     * Open gallery activity for the given archive file
+     */
+    private void openGallery(File archiveFile, String password) {
+        Intent intent = new Intent(this, GalleryActivity.class);
+        intent.putExtra(GalleryActivity.EXTRA_ARCHIVE_PATH, archiveFile.getAbsolutePath());
+        intent.putExtra(GalleryActivity.EXTRA_ARCHIVE_NAME, archiveFile.getName());
+        intent.putExtra(GalleryActivity.EXTRA_PASSWORD, password);
+        startActivity(intent);
     }
 
     /**
@@ -280,7 +352,7 @@ public class MainActivity extends AppCompatActivity implements ArchiveAdapter.On
     /**
      * Show dialog asking user if they want to override existing file
      */
-    private void showFileExistsDialog(Uri uri, String fileName) {
+    private void showFileExistsDialog(Uri uri, String fileName, boolean fromSharedIntent) {
         new AlertDialog.Builder(this)
                 .setTitle(R.string.file_exists_title)
                 .setMessage(getString(R.string.file_exists_message, fileName))
@@ -290,7 +362,7 @@ public class MainActivity extends AppCompatActivity implements ArchiveAdapter.On
                         try {
                             File internalFile = copyToInternalStorage(uri, fileName);
                             runOnUiThread(() -> {
-                                checkAndPromptForPassword(internalFile);
+                                checkAndPromptForPassword(internalFile, fromSharedIntent);
                             });
                         } catch (Exception e) {
                             runOnUiThread(() -> {
@@ -306,7 +378,7 @@ public class MainActivity extends AppCompatActivity implements ArchiveAdapter.On
                             String uniqueFileName = generateUniqueFileName(fileName);
                             File internalFile = copyToInternalStorage(uri, uniqueFileName);
                             runOnUiThread(() -> {
-                                checkAndPromptForPassword(internalFile);
+                                checkAndPromptForPassword(internalFile, fromSharedIntent);
                             });
                         } catch (Exception e) {
                             runOnUiThread(() -> {
