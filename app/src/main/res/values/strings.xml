@@ -12,4 +12,8 @@
     <string name="delete">Delete</string>
     <string name="view">View</string>
     <string name="zip_label">ZIP</string>
+    <string name="file_exists_title">File Already Exists</string>
+    <string name="file_exists_message">A file with the name \"%1$s\" already exists. Do you want to override it?</string>
+    <string name="override">Override</string>
+    <string name="keep_both">Keep Both</string>
 </resources>
