@@ -135,13 +135,30 @@ public class MainActivity extends AppCompatActivity implements ArchiveAdapter.On
     private void openArchiveFile(Uri uri) {
         new Thread(() -> {
             try {
-                // Copy file to internal storage for privacy
-                File internalFile = copyToInternalStorage(uri);
+                // Get filename first to check for conflicts
+                String fileName = getFileNameFromUri(uri);
+                File internalDir = new File(getFilesDir(), "archives");
+                if (!internalDir.exists()) {
+                    internalDir.mkdirs();
+                }
                 
-                // Check if archive is encrypted and prompt for password
-                runOnUiThread(() -> {
-                    checkAndPromptForPassword(internalFile);
-                });
+                File targetFile = new File(internalDir, fileName);
+                
+                // Check if file already exists
+                if (targetFile.exists()) {
+                    // Show confirmation dialog on UI thread
+                    runOnUiThread(() -> {
+                        showFileExistsDialog(uri, fileName);
+                    });
+                } else {
+                    // File doesn't exist, proceed with copy
+                    File internalFile = copyToInternalStorage(uri, fileName);
+                    
+                    // Check if archive is encrypted and prompt for password
+                    runOnUiThread(() -> {
+                        checkAndPromptForPassword(internalFile);
+                    });
+                }
                 
             } catch (Exception e) {
                 runOnUiThread(() -> {
@@ -221,19 +238,11 @@ public class MainActivity extends AppCompatActivity implements ArchiveAdapter.On
      * Copy file to internal storage to ensure privacy
      * Files in internal storage cannot be accessed by other apps
      */
-    private File copyToInternalStorage(Uri uri) throws Exception {
+    private File copyToInternalStorage(Uri uri, String fileName) throws Exception {
         File internalDir = new File(getFilesDir(), "archives");
         if (!internalDir.exists()) {
             internalDir.mkdirs();
         }
-        
-        // Get filename and sanitize to prevent path traversal
-        String fileName = uri.getLastPathSegment();
-        if (fileName == null || fileName.isEmpty()) {
-            fileName = "archive_" + System.currentTimeMillis() + ".zip";
-        }
-        // Sanitize filename to prevent directory traversal attacks
-        fileName = new File(fileName).getName();
         
         File outputFile = new File(internalDir, fileName);
         
@@ -253,6 +262,87 @@ public class MainActivity extends AppCompatActivity implements ArchiveAdapter.On
         }
         
         return outputFile;
+    }
+    
+    /**
+     * Extract filename from URI and sanitize it
+     */
+    private String getFileNameFromUri(Uri uri) {
+        String fileName = uri.getLastPathSegment();
+        if (fileName == null || fileName.isEmpty()) {
+            fileName = "archive_" + System.currentTimeMillis() + ".zip";
+        }
+        // Sanitize filename to prevent directory traversal attacks
+        fileName = new File(fileName).getName();
+        return fileName;
+    }
+    
+    /**
+     * Show dialog asking user if they want to override existing file
+     */
+    private void showFileExistsDialog(Uri uri, String fileName) {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.file_exists_title)
+                .setMessage(getString(R.string.file_exists_message, fileName))
+                .setPositiveButton(R.string.override, (dialog, which) -> {
+                    // User chose to override, proceed with copy
+                    new Thread(() -> {
+                        try {
+                            File internalFile = copyToInternalStorage(uri, fileName);
+                            runOnUiThread(() -> {
+                                checkAndPromptForPassword(internalFile);
+                            });
+                        } catch (Exception e) {
+                            runOnUiThread(() -> {
+                                Toast.makeText(this, "Error opening archive: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                            });
+                        }
+                    }).start();
+                })
+                .setNegativeButton(R.string.keep_both, (dialog, which) -> {
+                    // User chose to keep both files, generate unique filename
+                    new Thread(() -> {
+                        try {
+                            String uniqueFileName = generateUniqueFileName(fileName);
+                            File internalFile = copyToInternalStorage(uri, uniqueFileName);
+                            runOnUiThread(() -> {
+                                checkAndPromptForPassword(internalFile);
+                            });
+                        } catch (Exception e) {
+                            runOnUiThread(() -> {
+                                Toast.makeText(this, "Error opening archive: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                            });
+                        }
+                    }).start();
+                })
+                .setCancelable(true)
+                .show();
+    }
+    
+    /**
+     * Generate a unique filename by appending a suffix
+     */
+    private String generateUniqueFileName(String fileName) {
+        File internalDir = new File(getFilesDir(), "archives");
+        
+        // Split filename into name and extension
+        String nameWithoutExt = fileName;
+        String extension = "";
+        int lastDotIndex = fileName.lastIndexOf('.');
+        if (lastDotIndex > 0 && lastDotIndex < fileName.length() - 1) {
+            nameWithoutExt = fileName.substring(0, lastDotIndex);
+            extension = fileName.substring(lastDotIndex);
+        }
+        
+        // Try to find a unique name by appending numbers
+        int counter = 1;
+        String newFileName = fileName;
+        while (new File(internalDir, newFileName).exists()) {
+            newFileName = nameWithoutExt + " (" + counter + ")" + extension;
+            counter++;
+        }
+        
+        return newFileName;
     }
 
     /**
