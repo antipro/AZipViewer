@@ -44,19 +44,10 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
         if (imageEntry.hasThumbnail()) {
             holder.imageView.setImageBitmap(imageEntry.getThumbnail());
             holder.imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-        } else if (imageEntry.isThumbnailLoading()) {
+        } else {
             // Show placeholder icon while loading
             holder.imageView.setImageResource(R.drawable.ic_image_placeholder);
             holder.imageView.setScaleType(ImageView.ScaleType.CENTER);
-        } else {
-            // Fallback to full bitmap if no thumbnail (for small images)
-            if (imageEntry.hasFullBitmap()) {
-                holder.imageView.setImageBitmap(imageEntry.getFullBitmap());
-                holder.imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            } else {
-                holder.imageView.setImageResource(R.drawable.ic_image_placeholder);
-                holder.imageView.setScaleType(ImageView.ScaleType.CENTER);
-            }
         }
         
         holder.itemView.setOnClickListener(v -> {

@@ -11,10 +11,28 @@ public class ImageEntry {
     private Bitmap thumbnail;
     private boolean thumbnailLoading;
     private long fileSize;
+    private String archivePath;
+    private String password;
 
     public ImageEntry(String fileName) {
         this.fileName = fileName;
         this.thumbnailLoading = false;
+    }
+
+    public String getArchivePath() {
+        return archivePath;
+    }
+
+    public void setArchivePath(String archivePath) {
+        this.archivePath = archivePath;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     public String getFileName() {

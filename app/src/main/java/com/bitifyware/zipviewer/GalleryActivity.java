@@ -20,7 +20,9 @@ import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
 import net.lingala.zip4j.model.FileHeader;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -130,7 +132,7 @@ public class GalleryActivity extends AppCompatActivity {
                 List<FileHeader> fileHeaders = zipFile.getFileHeaders();
                 List<ImageEntry> loadedImages = new ArrayList<>();
 
-                // First pass: Create image entries and load small images directly
+                // First pass: Create image entries and load thumbnails only
                 for (FileHeader fileHeader : fileHeaders) {
                     String fileName = fileHeader.getFileName().toLowerCase();
                     if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg") ||
@@ -139,22 +141,22 @@ public class GalleryActivity extends AppCompatActivity {
 
                         ImageEntry imageEntry = new ImageEntry(fileHeader.getFileName());
                         imageEntry.setFileSize(fileHeader.getUncompressedSize());
+                        imageEntry.setArchivePath(archivePath);
+                        imageEntry.setPassword(password);
                         
-                        // Load the image
+                        // Load image data into byte array
                         InputStream inputStream = zipFile.getInputStream(fileHeader);
-                        Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+                        byte[] imageData = readAllBytes(inputStream);
                         inputStream.close();
                         
-                        if (bitmap != null) {
-                            imageEntry.setFullBitmap(bitmap);
+                        if (imageData != null && imageData.length > 0) {
+                            // Decode directly as thumbnail using efficient sampling
+                            Bitmap thumbnail = ThumbnailGenerator.decodeSampledBitmap(
+                                imageData, 300, 300
+                            );
                             
-                            // Check if thumbnail is needed based on bitmap size
-                            if (ThumbnailGenerator.needsThumbnail(bitmap)) {
-                                imageEntry.setThumbnailLoading(true);
-                                loadedImages.add(imageEntry);
-                            } else {
-                                // For small images, use the bitmap as thumbnail too
-                                imageEntry.setThumbnail(bitmap);
+                            if (thumbnail != null) {
+                                imageEntry.setThumbnail(thumbnail);
                                 loadedImages.add(imageEntry);
                             }
                         }
@@ -170,22 +172,6 @@ public class GalleryActivity extends AppCompatActivity {
                         Toast.makeText(this, "No images found in archive", Toast.LENGTH_SHORT).show();
                     }
                 });
-
-                // Second pass: Generate thumbnails in background for large images
-                for (int i = 0; i < loadedImages.size(); i++) {
-                    ImageEntry entry = loadedImages.get(i);
-                    if (entry.isThumbnailLoading() && entry.hasFullBitmap()) {
-                        final int position = i;
-                        Bitmap thumbnail = ThumbnailGenerator.generateThumbnail(entry.getFullBitmap());
-                        entry.setThumbnail(thumbnail);
-                        entry.setThumbnailLoading(false);
-                        
-                        // Update UI on main thread
-                        runOnUiThread(() -> {
-                            imageAdapter.notifyItemChanged(position);
-                        });
-                    }
-                }
 
             } catch (ZipException e) {
                 // Check if it's a password-related error
@@ -247,19 +233,67 @@ public class GalleryActivity extends AppCompatActivity {
     }
 
     private void onImageClick(int position) {
-        // Extract full bitmaps for viewer
-        List<Bitmap> fullBitmaps = new ArrayList<>();
-        for (ImageEntry entry : images) {
-            if (entry.hasFullBitmap()) {
-                fullBitmaps.add(entry.getFullBitmap());
+        // Load full bitmaps on-demand from archive
+        new Thread(() -> {
+            List<Bitmap> fullBitmaps = new ArrayList<>();
+            try {
+                File archiveFile = new File(archivePath);
+                ZipFile zipFile = new ZipFile(archiveFile);
+
+                // Set password if archive is encrypted
+                if (zipFile.isEncrypted() && password != null && !password.isEmpty()) {
+                    zipFile.setPassword(password.toCharArray());
+                }
+
+                // Load full bitmaps for all images
+                for (ImageEntry entry : images) {
+                    try {
+                        FileHeader fileHeader = zipFile.getFileHeader(entry.getFileName());
+                        if (fileHeader != null) {
+                            InputStream inputStream = zipFile.getInputStream(fileHeader);
+                            Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+                            inputStream.close();
+                            
+                            if (bitmap != null) {
+                                fullBitmaps.add(bitmap);
+                            }
+                        }
+                    } catch (Exception e) {
+                        // If loading fails, use thumbnail as fallback
+                        if (entry.hasThumbnail()) {
+                            fullBitmaps.add(entry.getThumbnail());
+                        }
+                    }
+                }
+
+                runOnUiThread(() -> {
+                    // Set shared images and open viewer
+                    ImageViewerActivity.setSharedImages(fullBitmaps);
+                    android.content.Intent intent = new android.content.Intent(this, ImageViewerActivity.class);
+                    intent.putExtra(ImageViewerActivity.EXTRA_POSITION, position);
+                    startActivity(intent);
+                });
+
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Error loading images: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
             }
+        }).start();
+    }
+
+    /**
+     * Helper method to read all bytes from an InputStream
+     */
+    private byte[] readAllBytes(InputStream inputStream) throws IOException {
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        int nRead;
+        byte[] data = new byte[8192];
+        while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+            buffer.write(data, 0, nRead);
         }
-        
-        // Ensure fresh copy of images is set to avoid recycled bitmap references
-        ImageViewerActivity.setSharedImages(fullBitmaps);
-        android.content.Intent intent = new android.content.Intent(this, ImageViewerActivity.class);
-        intent.putExtra(ImageViewerActivity.EXTRA_POSITION, position);
-        startActivity(intent);
+        buffer.flush();
+        return buffer.toByteArray();
     }
 
     @Override
