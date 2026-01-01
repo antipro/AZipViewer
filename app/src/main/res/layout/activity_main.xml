@@ -82,7 +82,7 @@
                 android:paddingEnd="16dp"
                 android:drawableStart="@android:drawable/ic_menu_search"
                 android:drawablePadding="12dp"
-                app:drawableTint="@color/dark_text_secondary"
+                android:drawableTint="@color/dark_text_secondary"
                 android:inputType="text"
                 android:imeOptions="actionSearch" />
         </com.google.android.material.card.MaterialCardView>
