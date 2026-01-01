@@ -40,7 +40,7 @@ public class ImageViewerAdapter extends RecyclerView.Adapter<ImageViewerAdapter.
     private Map<Integer, Float> rotationMap = new HashMap<>();
     private Map<Integer, Bitmap> loadedBitmaps = new HashMap<>();
     private Map<Integer, Bitmap> rotatedBitmaps = new HashMap<>();
-    private ExecutorService executorService = Executors.newFixedThreadPool(2);
+    private ExecutorService executorService = Executors.newSingleThreadExecutor();
     private Handler mainHandler = new Handler(Looper.getMainLooper());
 
     public ImageViewerAdapter(Context context, List<ImageEntry> imageEntries, String archivePath, String password) {
@@ -98,20 +98,20 @@ public class ImageViewerAdapter extends RecyclerView.Adapter<ImageViewerAdapter.
                 
                 FileHeader fileHeader = zipFile.getFileHeader(entry.getFileName());
                 if (fileHeader != null) {
-                    InputStream inputStream = zipFile.getInputStream(fileHeader);
-                    Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-                    inputStream.close();
-                    
-                    if (bitmap != null) {
-                        // Cache the loaded bitmap
-                        loadedBitmaps.put(position, bitmap);
+                    try (InputStream inputStream = zipFile.getInputStream(fileHeader)) {
+                        Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
                         
-                        // Update UI on main thread
-                        mainHandler.post(() -> {
-                            if (holder.getBindingAdapterPosition() == position) {
-                                displayBitmap(holder, position, bitmap);
-                            }
-                        });
+                        if (bitmap != null) {
+                            // Cache the loaded bitmap
+                            loadedBitmaps.put(position, bitmap);
+                            
+                            // Update UI on main thread
+                            mainHandler.post(() -> {
+                                if (holder.getBindingAdapterPosition() == position) {
+                                    displayBitmap(holder, position, bitmap);
+                                }
+                            });
+                        }
                     }
                 }
             } catch (Exception e) {
@@ -244,8 +244,16 @@ public class ImageViewerAdapter extends RecyclerView.Adapter<ImageViewerAdapter.
      * Call this when the adapter is no longer needed
      */
     public void cleanup() {
-        // Shutdown executor service
+        // Shutdown executor service and wait for tasks to complete
         executorService.shutdown();
+        try {
+            if (!executorService.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executorService.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
         
         // Clean up rotated bitmaps
         for (Map.Entry<Integer, Bitmap> entry : rotatedBitmaps.entrySet()) {
