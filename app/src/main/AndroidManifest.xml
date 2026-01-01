@@ -41,7 +41,7 @@
         <activity
             android:name=".ImageViewerActivity"
             android:exported="false"
-            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
+            android:theme="@style/Theme.ImageViewer"
             android:parentActivityName=".GalleryActivity" />
     </application>
 
