@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -11,128 +10,237 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- Top Bar -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="16dp"
-            android:gravity="center_vertical">
+            android:padding="16dp">
 
-            <ImageView
+            <ImageButton
+                android:id="@+id/btnModeSwitch"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
-                android:src="@mipmap/ic_launcher"
-                android:contentDescription="@string/app_name" />
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/open_browser_view"
+                android:src="@android:drawable/ic_menu_compass"
+                app:tint="@color/dark_text_primary" />
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
                 android:layout_weight="1"
-                android:orientation="vertical"
-                android:layout_marginStart="12dp">
+                android:orientation="vertical">
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:id="@+id/topTitle"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
                     android:text="@string/app_name"
                     android:textColor="@color/dark_text_primary"
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:id="@+id/topSubtitle"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
                     android:text="@string/private_gallery"
                     android:textColor="@color/dark_text_secondary"
                     android:textSize="12sp" />
             </LinearLayout>
 
+            <ImageButton
+                android:id="@+id/btnBrowserSettings"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/open_collector_settings"
+                android:src="@android:drawable/ic_menu_manage"
+                android:visibility="gone"
+                app:tint="@color/dark_text_primary" />
+
             <com.google.android.material.floatingactionbutton.FloatingActionButton
                 android:id="@+id/fabAdd"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:contentDescription="@string/add_archive"
+                app:backgroundTint="@color/accent_purple"
                 app:fabSize="mini"
                 app:srcCompat="@android:drawable/ic_input_add"
-                android:contentDescription="@string/add_archive"
-                app:tint="@color/white"
-                app:backgroundTint="@color/accent_purple" />
+                app:tint="@color/white" />
         </LinearLayout>
 
-        <!-- Search Bar -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginBottom="16dp"
-            app:cardBackgroundColor="@color/dark_surface"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="0dp">
-
-            <EditText
-                android:id="@+id/searchBar"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:background="@android:color/transparent"
-                android:hint="@string/search_archives"
-                android:textColorHint="@color/dark_text_secondary"
-                android:textColor="@color/dark_text_primary"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:drawableStart="@android:drawable/ic_menu_search"
-                android:drawablePadding="12dp"
-                android:drawableTint="@color/dark_text_secondary"
-                android:inputType="text"
-                android:imeOptions="actionSearch" />
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- RecyclerView for archives -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recyclerView"
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:clipToPadding="false" />
+            android:layout_weight="1">
 
-        <!-- Privacy Message -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="16dp"
-            android:gravity="center_vertical">
+            <LinearLayout
+                android:id="@+id/archiveContainer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
 
-            <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:src="@android:drawable/ic_secure"
-                app:tint="@color/accent_purple"
-                android:contentDescription="@string/privacy_message" />
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginBottom="16dp"
+                    app:cardBackgroundColor="@color/dark_surface"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp">
 
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="8dp"
-                android:text="@string/privacy_message"
-                android:textColor="@color/dark_text_secondary"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-        </LinearLayout>
+                    <EditText
+                        android:id="@+id/searchBar"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:background="@android:color/transparent"
+                        android:drawableStart="@android:drawable/ic_menu_search"
+                        android:drawablePadding="12dp"
+                        android:drawableTint="@color/dark_text_secondary"
+                        android:hint="@string/search_archives"
+                        android:imeOptions="actionSearch"
+                        android:inputType="text"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="16dp"
+                        android:textColor="@color/dark_text_primary"
+                        android:textColorHint="@color/dark_text_secondary" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recyclerView"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:clipToPadding="false"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="16dp">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:contentDescription="@string/privacy_message"
+                        android:src="@android:drawable/ic_secure"
+                        app:tint="@color/accent_purple" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:text="@string/privacy_message"
+                        android:textColor="@color/dark_text_secondary"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/browserContainer"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginBottom="16dp"
+                    app:cardBackgroundColor="@color/dark_surface"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="0dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp">
+
+                        <ImageButton
+                            android:id="@+id/btnBrowserBack"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="@string/browser_back"
+                            android:src="@android:drawable/ic_media_previous"
+                            app:tint="@color/dark_text_secondary" />
+
+                        <AutoCompleteTextView
+                            android:id="@+id/addressBar"
+                            android:layout_width="0dp"
+                            android:layout_height="48dp"
+                            android:layout_weight="1"
+                            android:background="@android:color/transparent"
+                            android:completionThreshold="1"
+                            android:dropDownHeight="wrap_content"
+                            android:dropDownHorizontalOffset="0dp"
+                            android:dropDownVerticalOffset="0dp"
+                            android:hint="@string/browser_address_hint"
+                            android:imeOptions="actionGo"
+                            android:inputType="textUri"
+                            android:paddingStart="8dp"
+                            android:paddingEnd="8dp"
+                            android:singleLine="true"
+                            android:textColor="@color/dark_text_primary"
+                            android:textColorHint="@color/dark_text_secondary" />
+
+                        <ImageButton
+                            android:id="@+id/btnBrowserRefresh"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="@string/browser_refresh"
+                            android:src="@android:drawable/ic_popup_sync"
+                            app:tint="@color/dark_text_secondary" />
+
+                        <ImageButton
+                            android:id="@+id/btnBrowserGo"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="@string/go_to_address"
+                            android:src="@android:drawable/ic_media_play"
+                            app:tint="@color/accent_purple" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <WebView
+                    android:id="@+id/webView"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+            </LinearLayout>
+        </FrameLayout>
     </LinearLayout>
 
-    <!-- FAB for View Toggle (Hidden initially, shown in gallery view) -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabViewToggle"
+        android:id="@+id/fabCollector"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
-        android:contentDescription="@string/toggle_view"
+        android:contentDescription="@string/start_collecting"
         android:visibility="gone"
-        app:srcCompat="@android:drawable/ic_menu_view" />
+        app:backgroundTint="@color/accent_purple"
+        app:srcCompat="@android:drawable/ic_menu_save"
+        app:tint="@color/white" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

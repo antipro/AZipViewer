@@ -1,15 +1,18 @@
 # ZipViewer - Private Archive Viewer
 
-An Android native app for viewing images directly from encrypted ZIP, RAR, and 7Z archives.
+An Android native app for viewing images directly from encrypted ZIP, RAR, and 7Z archives, with an embedded web browser for collecting web images into protected ZIP files.
 
 ## Features
 - **Privacy First**: All data is stored in internal storage and cannot be accessed by other apps.
 - **Encrypted Archives**: Full support for password-protected ZIP files using `zip4j`.
 - **Files Grid and List**: Show zip files in two different views.
 - **Zip Editor**: Registers itself as a zip file editor, so can be called by other apps (like Telegram) to open zip files.
+- **Embedded Browser Mode**: Switch from the archive list into an in-app browser with an address bar.
+- **Image Collector**: Toggle collection on a web page, then export matching images into a password-protected ZIP archive.
+- **Collector Settings**: Configure minimum image width, minimum image height, and allowed file types before collecting.
 
 ## Requirements
-- Java 17 or later (Java 21 recommended)
+- Java 17
 - Gradle 8.2+
 - Android SDK 26+
 - Package: `com.bitifyware.zipviewer`
@@ -60,6 +63,7 @@ The app is registered as a generic File Viewer (appears in "Open With" menus) wi
 
 ## Building the App
 ```bash
+export JAVA_HOME=$(/usr/libexec/java_home -v 17)
 ./gradlew assembleDebug
 ```
 
@@ -71,4 +75,3 @@ The app is registered as a generic File Viewer (appears in "Open With" menus) wi
 
 ## Privacy
 All archive files opened by the app are copied to the app's internal storage directory, which is sandboxed and cannot be accessed by other applications, ensuring complete privacy.
-
