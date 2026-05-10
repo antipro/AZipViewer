@@ -3,6 +3,7 @@ package com.bitifyware.zipviewer;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -43,6 +44,7 @@ public class ImageViewerActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_image_viewer);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
 
         // Hide system UI for immersive experience
         getWindow().getDecorView().setSystemUiVisibility(
